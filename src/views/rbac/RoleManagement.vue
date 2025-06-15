@@ -21,11 +21,16 @@
         <el-table-column prop="id" label="角色ID" width="80" />
         <el-table-column prop="name" label="角色名称" min-width="120" />
         <el-table-column prop="description" label="角色描述" min-width="200" />
-        <el-table-column label="状态" width="100">
+        <el-table-column label="状态" width="120">
           <template #default="scope">
-            <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'">
-              {{ scope.row.status === 1 ? '启用' : '禁用' }}
-            </el-tag>
+            <el-switch
+              v-model="scope.row.status"
+              :active-value="1"
+              :inactive-value="0"
+              active-text="启用"
+              inactive-text="禁用"
+              @change="handleStatusChange(scope.row)"
+            />
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="180" />
@@ -143,7 +148,17 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Key, Edit, Delete } from '@element-plus/icons-vue'
-import { getAllRoles, getRolePermissions, assignPermissionsToRole, removePermissionsFromRole, getAllPermissions } from '@/api/rbac'
+import { 
+  getAllRoles, 
+  getRolePermissions, 
+  assignPermissionsToRole, 
+  removePermissionsFromRole, 
+  getAllPermissions,
+  createRole,
+  updateRole,
+  deleteRole,
+  updateRoleStatus
+} from '@/api/rbac'
 
 // 响应式数据
 const loading = ref(false)
@@ -283,16 +298,28 @@ const handleSubmitRole = async () => {
 
     roleDialog.loading = true
 
-    // 这里需要根据实际API来实现新增/编辑角色
-    // 由于API文档中没有提供角色的增删改接口，这里只是模拟
+    let response
     if (roleDialog.isEdit) {
-      ElMessage.success('角色编辑功能需要后端API支持')
+      // 编辑角色
+      response = await updateRole(roleForm.id, {
+        name: roleForm.name,
+        description: roleForm.description
+      })
     } else {
-      ElMessage.success('角色新增功能需要后端API支持')
+      // 新增角色
+      response = await createRole({
+        name: roleForm.name,
+        description: roleForm.description
+      })
     }
-    
-    roleDialog.visible = false
-    // fetchRoleList() // 刷新列表
+
+    if (response.code === 200) {
+      ElMessage.success(roleDialog.isEdit ? '角色更新成功' : '角色创建成功')
+      roleDialog.visible = false
+      fetchRoleList() // 刷新列表
+    } else {
+      ElMessage.error(response.message || (roleDialog.isEdit ? '角色更新失败' : '角色创建失败'))
+    }
   } catch (error) {
     console.error('提交角色失败:', error)
     ElMessage.error('提交角色失败')
@@ -301,18 +328,48 @@ const handleSubmitRole = async () => {
   }
 }
 
+// 切换角色状态
+const handleStatusChange = async (role) => {
+  try {
+    const response = await updateRoleStatus(role.id, role.status)
+    
+    if (response.code === 200) {
+      ElMessage.success(`角色已${role.status === 1 ? '启用' : '禁用'}`)
+    } else {
+      // 如果更新失败，恢复原状态
+      role.status = role.status === 1 ? 0 : 1
+      ElMessage.error(response.message || '状态更新失败')
+    }
+  } catch (error) {
+    // 如果出错，恢复原状态
+    role.status = role.status === 1 ? 0 : 1
+    console.error('更新角色状态失败:', error)
+    ElMessage.error('更新角色状态失败')
+  }
+}
+
 // 删除角色
 const handleDeleteRole = async (role) => {
   try {
-    await ElMessageBox.confirm(`确定要删除角色 "${role.name}" 吗？`, '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
+    await ElMessageBox.confirm(
+      `确定要删除角色 "${role.name}" 吗？删除后无法恢复！`, 
+      '删除角色', 
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+        dangerouslyUseHTMLString: true
+      }
+    )
 
-    // 这里需要调用删除API
-    ElMessage.success('角色删除功能需要后端API支持')
-    // fetchRoleList() // 刷新列表
+    const response = await deleteRole(role.id)
+    
+    if (response.code === 200) {
+      ElMessage.success('角色删除成功')
+      fetchRoleList() // 刷新列表
+    } else {
+      ElMessage.error(response.message || '角色删除失败')
+    }
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除角色失败:', error)

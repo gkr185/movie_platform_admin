@@ -1,0 +1,311 @@
+// 清除浮动
+@mixin clearfix {
+  &::after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+}
+
+// 文字省略号
+@mixin text-ellipsis($lines: 1) {
+  @if $lines == 1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// 居中对齐
+@mixin center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+// Flex 居中
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Flex 垂直居中
+@mixin flex-v-center {
+  display: flex;
+  align-items: center;
+}
+
+// Flex 水平居中
+@mixin flex-h-center {
+  display: flex;
+  justify-content: center;
+}
+
+// 响应式断点
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == xs {
+    @media (max-width: #{$breakpoint-xs - 1px}) {
+      @content;
+    }
+  }
+  @if $breakpoint == sm {
+    @media (min-width: #{$breakpoint-sm}) {
+      @content;
+    }
+  }
+  @if $breakpoint == md {
+    @media (min-width: #{$breakpoint-md}) {
+      @content;
+    }
+  }
+  @if $breakpoint == lg {
+    @media (min-width: #{$breakpoint-lg}) {
+      @content;
+    }
+  }
+  @if $breakpoint == xl {
+    @media (min-width: #{$breakpoint-xl}) {
+      @content;
+    }
+  }
+  @if $breakpoint == xxl {
+    @media (min-width: #{$breakpoint-xxl}) {
+      @content;
+    }
+  }
+}
+
+// 卡片样式
+@mixin card-style {
+  background: $background-color-white;
+  border: 1px solid $border-color-base;
+  border-radius: $border-radius-base;
+  box-shadow: $box-shadow-light;
+  padding: $spacing-lg;
+}
+
+// 按钮基础样式
+@mixin button-base {
+  display: inline-block;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  background: $background-color-white;
+  border: 1px solid $border-color-base;
+  color: $text-color-regular;
+  text-align: center;
+  box-sizing: border-box;
+  outline: none;
+  margin: 0;
+  transition: $transition-base;
+  font-weight: $font-weight-medium;
+  user-select: none;
+  border-radius: $border-radius-base;
+  
+  &:hover,
+  &:focus {
+    color: $primary-color;
+    border-color: $primary-light;
+    background-color: $primary-light;
+  }
+  
+  &:active {
+    color: $primary-dark;
+    border-color: $primary-dark;
+    outline: none;
+  }
+  
+  &.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+// 输入框基础样式
+@mixin input-base {
+  background-color: $background-color-white;
+  background-image: none;
+  border-radius: $border-radius-base;
+  border: 1px solid $border-color-base;
+  box-sizing: border-box;
+  color: $text-color-regular;
+  display: inline-block;
+  font-size: inherit;
+  height: $component-size-medium;
+  line-height: $component-size-medium;
+  outline: none;
+  padding: 0 15px;
+  transition: $transition-base;
+  width: 100%;
+  
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+  }
+  
+  &::placeholder {
+    color: $text-color-placeholder;
+  }
+  
+  &.is-disabled {
+    background-color: $background-color-base;
+    border-color: $border-color-lighter;
+    color: $text-color-placeholder;
+    cursor: not-allowed;
+  }
+}
+
+// 滚动条美化
+@mixin scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: $background-color-light;
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: $border-color-base;
+    border-radius: 3px;
+    
+    &:hover {
+      background: $border-color-light;
+    }
+  }
+}
+
+// 动画效果
+@mixin fade-in($duration: 0.3s) {
+  animation: fadeIn $duration ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@mixin slide-up($duration: 0.3s) {
+  animation: slideUp $duration ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// 鼠标悬停效果
+@mixin hover-effect {
+  transition: $transition-base;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $box-shadow-dark;
+  }
+}
+
+// 状态徽章
+@mixin status-badge($color) {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: $border-radius-round;
+  font-size: $font-size-small;
+  font-weight: $font-weight-medium;
+  line-height: 1.2;
+  color: $color;
+  background-color: lighten($color, 45%);
+  border: 1px solid lighten($color, 30%);
+}
+
+// 表格行悬停效果
+@mixin table-row-hover {
+  &:hover {
+    background-color: $background-color-base;
+  }
+}
+
+// 加载动画
+@mixin loading-spinner($size: 20px) {
+  width: $size;
+  height: $size;
+  border: 2px solid $border-color-lighter;
+  border-top: 2px solid $primary-color;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// 电影海报样式
+@mixin movie-poster {
+  position: relative;
+  border-radius: $border-radius-base;
+  overflow: hidden;
+  box-shadow: $box-shadow-base;
+  transition: $transition-base;
+  
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: $box-shadow-dark;
+  }
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+// 星级评分样式
+@mixin star-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  
+  .star {
+    color: $movie-rating-color;
+    font-size: 14px;
+    
+    &.empty {
+      color: $border-color-base;
+    }
+  }
+}
+
+// VIP 标签样式
+@mixin vip-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: linear-gradient(45deg, $movie-vip-color, darken($movie-vip-color, 10%));
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: $border-radius-small;
+  font-size: $font-size-extra-small;
+  font-weight: $font-weight-bold;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+} 

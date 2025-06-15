@@ -1,0 +1,259 @@
+// 导入变量和混合
+@import './variables.scss';
+@import './mixins.scss';
+
+// 全局样式重置
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  font-size: 14px;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: $font-family-base;
+  font-size: $font-size-base;
+  color: $text-color-primary;
+  background-color: $background-color-base;
+  line-height: $line-height-base;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  height: 100%;
+}
+
+// 滚动条美化
+html {
+  @include scrollbar;
+}
+
+// 链接样式
+a {
+  color: $primary-color;
+  text-decoration: none;
+  transition: $transition-base;
+  
+  &:hover {
+    color: $primary-dark;
+  }
+}
+
+// 表格样式优化
+.el-table {
+  .el-table__row {
+    @include table-row-hover;
+  }
+}
+
+// 卡片组件样式
+.admin-card {
+  @include card-style;
+  margin-bottom: $spacing-lg;
+}
+
+// 页面标题样式
+.page-title {
+  font-size: $font-size-large;
+  font-weight: $font-weight-medium;
+  color: $text-color-primary;
+  margin-bottom: $spacing-lg;
+  padding-bottom: $spacing-sm;
+  border-bottom: 2px solid $border-color-extra-light;
+}
+
+// 状态标签样式
+.status-active {
+  @include status-badge($status-active);
+}
+
+.status-inactive {
+  @include status-badge($status-inactive);
+}
+
+.status-pending {
+  @include status-badge($status-pending);
+}
+
+.status-error {
+  @include status-badge($status-error);
+}
+
+// 工具类
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.text-primary { color: $primary-color; }
+.text-success { color: $success-color; }
+.text-warning { color: $warning-color; }
+.text-danger { color: $danger-color; }
+.text-info { color: $info-color; }
+
+.bg-primary { background-color: $primary-color; }
+.bg-success { background-color: $success-color; }
+.bg-warning { background-color: $warning-color; }
+.bg-danger { background-color: $danger-color; }
+.bg-info { background-color: $info-color; }
+
+// 间距工具类
+.m-0 { margin: 0; }
+.mt-0 { margin-top: 0; }
+.mr-0 { margin-right: 0; }
+.mb-0 { margin-bottom: 0; }
+.ml-0 { margin-left: 0; }
+
+.m-xs { margin: $spacing-xs; }
+.mt-xs { margin-top: $spacing-xs; }
+.mr-xs { margin-right: $spacing-xs; }
+.mb-xs { margin-bottom: $spacing-xs; }
+.ml-xs { margin-left: $spacing-xs; }
+
+.m-sm { margin: $spacing-sm; }
+.mt-sm { margin-top: $spacing-sm; }
+.mr-sm { margin-right: $spacing-sm; }
+.mb-sm { margin-bottom: $spacing-sm; }
+.ml-sm { margin-left: $spacing-sm; }
+
+.m-md { margin: $spacing-md; }
+.mt-md { margin-top: $spacing-md; }
+.mr-md { margin-right: $spacing-md; }
+.mb-md { margin-bottom: $spacing-md; }
+.ml-md { margin-left: $spacing-md; }
+
+.m-lg { margin: $spacing-lg; }
+.mt-lg { margin-top: $spacing-lg; }
+.mr-lg { margin-right: $spacing-lg; }
+.mb-lg { margin-bottom: $spacing-lg; }
+.ml-lg { margin-left: $spacing-lg; }
+
+.p-0 { padding: 0; }
+.pt-0 { padding-top: 0; }
+.pr-0 { padding-right: 0; }
+.pb-0 { padding-bottom: 0; }
+.pl-0 { padding-left: 0; }
+
+.p-xs { padding: $spacing-xs; }
+.pt-xs { padding-top: $spacing-xs; }
+.pr-xs { padding-right: $spacing-xs; }
+.pb-xs { padding-bottom: $spacing-xs; }
+.pl-xs { padding-left: $spacing-xs; }
+
+.p-sm { padding: $spacing-sm; }
+.pt-sm { padding-top: $spacing-sm; }
+.pr-sm { padding-right: $spacing-sm; }
+.pb-sm { padding-bottom: $spacing-sm; }
+.pl-sm { padding-left: $spacing-sm; }
+
+.p-md { padding: $spacing-md; }
+.pt-md { padding-top: $spacing-md; }
+.pr-md { padding-right: $spacing-md; }
+.pb-md { padding-bottom: $spacing-md; }
+.pl-md { padding-left: $spacing-md; }
+
+.p-lg { padding: $spacing-lg; }
+.pt-lg { padding-top: $spacing-lg; }
+.pr-lg { padding-right: $spacing-lg; }
+.pb-lg { padding-bottom: $spacing-lg; }
+.pl-lg { padding-left: $spacing-lg; }
+
+// Flex 工具类
+.d-flex { display: flex; }
+.flex-column { flex-direction: column; }
+.flex-row { flex-direction: row; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-nowrap { flex-wrap: nowrap; }
+
+.justify-start { justify-content: flex-start; }
+.justify-end { justify-content: flex-end; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-around { justify-content: space-around; }
+
+.align-start { align-items: flex-start; }
+.align-end { align-items: flex-end; }
+.align-center { align-items: center; }
+.align-baseline { align-items: baseline; }
+.align-stretch { align-items: stretch; }
+
+// 电影相关样式
+.movie-poster {
+  @include movie-poster;
+}
+
+.movie-rating {
+  @include star-rating;
+}
+
+.vip-badge {
+  @include vip-badge;
+}
+
+// 加载状态
+.loading-spinner {
+  @include loading-spinner;
+}
+
+// 修复 ResizeObserver 相关的样式问题
+.el-table,
+.el-dialog,
+.el-drawer {
+  // 确保元素有稳定的尺寸计算
+  contain: layout style;
+}
+
+// 防止频繁的尺寸变化
+.el-table__body-wrapper {
+  overflow: auto;
+  will-change: auto;
+}
+
+// 空状态
+.empty-state {
+  text-align: center;
+  padding: $spacing-xxl;
+  color: $text-color-secondary;
+  
+  .empty-icon {
+    font-size: 64px;
+    color: $border-color-base;
+    margin-bottom: $spacing-md;
+  }
+  
+  .empty-text {
+    font-size: $font-size-medium;
+    margin-bottom: $spacing-sm;
+  }
+  
+  .empty-description {
+    font-size: $font-size-small;
+    color: $text-color-placeholder;
+  }
+}
+
+// 响应式隐藏类
+@include respond-to(xs) {
+  .hidden-xs { display: none !important; }
+}
+
+@include respond-to(sm) {
+  .hidden-sm { display: none !important; }
+}
+
+@include respond-to(md) {
+  .hidden-md { display: none !important; }
+}
+
+@include respond-to(lg) {
+  .hidden-lg { display: none !important; }
+}
+
+@include respond-to(xl) {
+  .hidden-xl { display: none !important; }
+} 

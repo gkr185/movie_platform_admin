@@ -151,7 +151,14 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Upload, Edit, Delete } from '@element-plus/icons-vue'
-import { getAllPermissions, registerPermission, batchRegisterPermissions } from '@/api/rbac'
+import { 
+  getAllPermissions, 
+  registerPermission, 
+  batchRegisterPermissions,
+  updatePermission,
+  deletePermission,
+  getPermissionDetail
+} from '@/api/rbac'
 
 // 响应式数据
 const loading = ref(false)
@@ -311,25 +318,29 @@ const handleSubmitPermission = async () => {
 
     permissionDialog.loading = true
 
+    let response
     if (permissionDialog.isEdit) {
-      // 编辑权限（API文档中没有提供编辑接口，这里只是模拟）
-      ElMessage.success('权限编辑功能需要后端API支持')
+      // 编辑权限
+      response = await updatePermission(permissionForm.id, {
+        name: permissionForm.name,
+        description: permissionForm.description
+      })
     } else {
       // 新增权限
-      const response = await registerPermission(
+      response = await registerPermission(
         permissionForm.code,
         permissionForm.name,
         permissionForm.description,
         permissionForm.parentId
       )
+    }
 
-      if (response.code === 200) {
-        ElMessage.success('权限注册成功')
-        permissionDialog.visible = false
-        fetchPermissions() // 刷新列表
-      } else {
-        ElMessage.error(response.message || '权限注册失败')
-      }
+    if (response.code === 200) {
+      ElMessage.success(permissionDialog.isEdit ? '权限更新成功' : '权限注册成功')
+      permissionDialog.visible = false
+      fetchPermissions() // 刷新列表
+    } else {
+      ElMessage.error(response.message || (permissionDialog.isEdit ? '权限更新失败' : '权限注册失败'))
     }
   } catch (error) {
     console.error('提交权限失败:', error)
@@ -342,15 +353,25 @@ const handleSubmitPermission = async () => {
 // 删除权限
 const handleDeletePermission = async (permission) => {
   try {
-    await ElMessageBox.confirm(`确定要删除权限 "${permission.name}" 吗？`, '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
+    await ElMessageBox.confirm(
+      `确定要删除权限 "${permission.name}" 吗？删除后无法恢复！`, 
+      '删除权限', 
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+        dangerouslyUseHTMLString: true
+      }
+    )
 
-    // API文档中没有提供删除权限的接口，这里只是模拟
-    ElMessage.success('权限删除功能需要后端API支持')
-    // fetchPermissions() // 刷新列表
+    const response = await deletePermission(permission.id)
+    
+    if (response.code === 200) {
+      ElMessage.success('权限删除成功')
+      fetchPermissions() // 刷新列表
+    } else {
+      ElMessage.error(response.message || '权限删除失败')
+    }
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除权限失败:', error)
