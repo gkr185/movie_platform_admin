@@ -68,24 +68,51 @@
 
               <el-form-item label="封面图片">
                 <div class="cover-upload">
-                  <el-upload
-                    class="cover-uploader"
-                    :action="uploadAction"
-                    :show-file-list="false"
-                    :on-success="handleCoverSuccess"
-                    :on-error="handleUploadError"
-                    :before-upload="beforeCoverUpload"
-                    accept="image/*"
-                  >
-                    <img v-if="form.cover_image" :src="form.cover_image" class="cover-image" />
-                    <el-icon v-else class="cover-uploader-icon"><Plus /></el-icon>
-                  </el-upload>
-                  <div class="upload-tips">
-                    <p>建议上传16:9比例的图片，文件大小不超过2MB</p>
-                    <p>支持JPG、PNG格式</p>
-                    <el-button v-if="form.cover_image" size="small" type="danger" @click="removeCover">
-                      删除图片
-                    </el-button>
+                  <FileUpload
+                    ref="coverUploadRef"
+                    category="news"
+                    :related-id="form.id"
+                    url-type="cover"
+                    :auto-update-db="!!form.id"
+                    upload-text="上传封面图片"
+                    :max-size="5"
+                    :file-types="['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp']"
+                    @upload-success="handleCoverUploadSuccess"
+                  />
+                  
+                  <div class="manual-input" style="margin-top: 10px;">
+                    <el-input
+                      v-model="form.cover_image"
+                      placeholder="或直接输入图片URL"
+                    >
+                      <template #prepend>封面URL</template>
+                    </el-input>
+                  </div>
+                  
+                  <div v-if="form.cover_image" class="cover-preview" style="margin-top: 10px;">
+                    <el-image
+                      :src="form.cover_image"
+                      :preview-src-list="[form.cover_image]"
+                      fit="cover"
+                      style="width: 200px; height: 120px; border-radius: 4px;"
+                      preview-teleported
+                    >
+                      <template #error>
+                        <div class="image-error">
+                          <el-icon><Picture /></el-icon>
+                          <p>图片加载失败</p>
+                        </div>
+                      </template>
+                    </el-image>
+                    <div class="cover-actions" style="margin-top: 8px;">
+                      <el-button size="small" @click="handlePreviewCover">预览</el-button>
+                      <el-button size="small" type="danger" @click="handleRemoveCover">删除</el-button>
+                    </div>
+                  </div>
+                  
+                  <div class="upload-tips" style="margin-top: 10px;">
+                    <p>建议上传16:9比例的图片，文件大小不超过5MB</p>
+                    <p>支持JPG、PNG、GIF等格式</p>
                   </div>
                 </div>
               </el-form-item>
@@ -114,19 +141,23 @@
                         引用
                       </el-button>
                     </el-button-group>
-                    <el-upload
-                      :action="uploadAction"
-                      :show-file-list="false"
-                      :on-success="handleContentImageSuccess"
-                      :on-error="handleUploadError"
-                      :before-upload="beforeImageUpload"
-                      accept="image/*"
+                    <FileUpload
+                      ref="contentImageUploadRef"
+                      category="news"
+                      :related-id="form.id"
+                      :auto-update-db="false"
+                      upload-text="插入图片"
+                      :max-size="5"
+                      :file-types="['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp']"
+                      @upload-success="handleContentImageUploadSuccess"
                     >
-                      <el-button size="small">
-                        <el-icon><Picture /></el-icon>
-                        插入图片
-                      </el-button>
-                    </el-upload>
+                      <template #trigger>
+                        <el-button size="small">
+                          <el-icon><Picture /></el-icon>
+                          插入图片
+                        </el-button>
+                      </template>
+                    </FileUpload>
                   </div>
                   
                   <el-input
@@ -234,6 +265,7 @@ import {
   Clock,
   Edit
 } from '@element-plus/icons-vue'
+import FileUpload from '@/components/FileUpload.vue'
 import { newsApi, newsCategoryApi } from '@/api/news'
 
 export default {
@@ -245,12 +277,15 @@ export default {
     ChatLineSquare,
     Picture,
     Clock,
-    Edit
+    Edit,
+    FileUpload
   },
   setup() {
     const router = useRouter()
     const route = useRoute()
     const formRef = ref(null)
+    const coverUploadRef = ref(null)
+    const contentImageUploadRef = ref(null)
     
     const loading = ref(false)
     const saving = ref(false)
@@ -258,7 +293,6 @@ export default {
     
     const categories = ref([])
     const originalData = ref(null)
-    const uploadAction = ref('/images/upload')
     const newsId = route.params.id
 
     // 新闻表单
@@ -404,96 +438,29 @@ export default {
       form.content += templates[type] || ''
     }
 
-    // 删除封面
-    const removeCover = () => {
-      form.cover_image = ''
-    }
-
-    // 封面上传成功
-    const handleCoverSuccess = (response) => {
-      console.log('封面上传API响应:', response)
-      
-      // 处理不同的响应格式
-      let success = false
-      let imageUrl = ''
-      
-      if (response && response.code === 200) {
-        // 标准响应格式
-        success = true
-        imageUrl = response.data
-      } else if (typeof response === 'string') {
-        // 直接返回图片URL
-        success = true
-        imageUrl = response
-      } else if (response && response.url) {
-        // 包含url字段的响应
-        success = true
-        imageUrl = response.url
-      }
-      
-      if (success && imageUrl) {
-        form.cover_image = imageUrl
-        ElMessage.success('封面上传成功')
-      } else {
-        ElMessage.error(response?.message || '上传失败')
+    // 文件上传成功处理
+    const handleCoverUploadSuccess = (response) => {
+      if (response.success) {
+        form.cover_image = response.fileUrl
+        ElMessage.success('封面图片上传成功')
       }
     }
 
-    // 内容图片上传成功
-    const handleContentImageSuccess = (response) => {
-      console.log('内容图片上传API响应:', response)
-      
-      // 处理不同的响应格式
-      let success = false
-      let imageUrl = ''
-      
-      if (response && response.code === 200) {
-        // 标准响应格式
-        success = true
-        imageUrl = response.data
-      } else if (typeof response === 'string') {
-        // 直接返回图片URL
-        success = true
-        imageUrl = response
-      } else if (response && response.url) {
-        // 包含url字段的响应
-        success = true
-        imageUrl = response.url
-      }
-      
-      if (success && imageUrl) {
-        const imageMarkdown = `\n![图片](${imageUrl})\n`
+    const handleContentImageUploadSuccess = (response) => {
+      if (response.success) {
+        const imageMarkdown = `\n![图片](${response.fileUrl})\n`
         form.content += imageMarkdown
-        ElMessage.success('图片上传成功')
-      } else {
-        ElMessage.error(response?.message || '上传失败')
+        ElMessage.success('图片上传成功，已插入到内容中')
       }
     }
 
-    // 上传失败
-    const handleUploadError = (error) => {
-      console.error('上传失败:', error)
-      ElMessage.error('上传失败')
+    // 封面预览和删除
+    const handlePreviewCover = () => {
+      // 预览功能由el-image组件自动处理
     }
 
-    // 上传前检查
-    const beforeCoverUpload = (file) => {
-      const isImage = /^image\//.test(file.type)
-      const isLt2M = file.size / 1024 / 1024 < 2
-
-      if (!isImage) {
-        ElMessage.error('只能上传图片文件!')
-        return false
-      }
-      if (!isLt2M) {
-        ElMessage.error('图片大小不能超过 2MB!')
-        return false
-      }
-      return true
-    }
-
-    const beforeImageUpload = (file) => {
-      return beforeCoverUpload(file)
+    const handleRemoveCover = () => {
+      form.cover_image = ''
     }
 
     // 保存新闻
@@ -695,22 +662,21 @@ export default {
 
     return {
       formRef,
+      coverUploadRef,
+      contentImageUploadRef,
       loading,
       saving,
       publishing,
       categories,
       originalData,
-      uploadAction,
       form,
       rules,
       renderedContent,
       insertTemplate,
-      removeCover,
-      handleCoverSuccess,
-      handleContentImageSuccess,
-      handleUploadError,
-      beforeCoverUpload,
-      beforeImageUpload,
+      handleCoverUploadSuccess,
+      handleContentImageUploadSuccess,
+      handlePreviewCover,
+      handleRemoveCover,
       handleSave,
       handlePublish,
       formatDateTime

@@ -293,22 +293,87 @@
           />
         </el-form-item>
 
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="海报链接" prop="posterUrl">
-              <el-input v-model="movieForm.posterUrl" placeholder="请输入海报图片链接" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="预告片链接" prop="trailerUrl">
-              <el-input v-model="movieForm.trailerUrl" placeholder="请输入预告片链接" />
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <!-- 文件上传区域 -->
+        <el-card class="upload-section" shadow="never">
+          <template #header>
+            <span class="upload-title">文件上传</span>
+          </template>
+          
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="电影海报" prop="posterUrl">
+                <div class="file-upload-container">
+                  <FileUpload
+                    ref="posterUploadRef"
+                    category="poster"
+                    :related-id="movieForm.id"
+                    url-type="poster"
+                    :auto-update-db="!!movieForm.id"
+                    upload-text="上传海报"
+                    :max-size="10"
+                    @upload-success="handlePosterUploadSuccess"
+                  />
+                  <el-input
+                    v-model="movieForm.posterUrl"
+                    placeholder="或直接输入海报链接"
+                    style="margin-top: 10px"
+                  />
+                  <div v-if="movieForm.posterUrl" class="preview-container">
+                    <el-image
+                      :src="movieForm.posterUrl"
+                      :preview-src-list="[movieForm.posterUrl]"
+                      fit="cover"
+                      style="width: 100px; height: 150px; margin-top: 10px"
+                      preview-teleported
+                    />
+                  </div>
+                </div>
+              </el-form-item>
+            </el-col>
+            
+            <el-col :span="12">
+              <el-form-item label="预告片" prop="trailerUrl">
+                <div class="file-upload-container">
+                  <FileUpload
+                    ref="trailerUploadRef"
+                    category="video"
+                    :related-id="movieForm.id"
+                    url-type="trailer"
+                    :auto-update-db="!!movieForm.id"
+                    upload-text="上传预告片"
+                    :max-size="500"
+                    @upload-success="handleTrailerUploadSuccess"
+                  />
+                  <el-input
+                    v-model="movieForm.trailerUrl"
+                    placeholder="或直接输入预告片链接"
+                    style="margin-top: 10px"
+                  />
+                </div>
+              </el-form-item>
+            </el-col>
+          </el-row>
 
-        <el-form-item label="播放链接" prop="playUrl">
-          <el-input v-model="movieForm.playUrl" placeholder="请输入视频播放链接" />
-        </el-form-item>
+          <el-form-item label="电影视频" prop="playUrl">
+            <div class="file-upload-container">
+              <FileUpload
+                ref="videoUploadRef"
+                category="video"
+                :related-id="movieForm.id"
+                url-type="play"
+                :auto-update-db="!!movieForm.id"
+                upload-text="上传电影视频"
+                :max-size="1000"
+                @upload-success="handleVideoUploadSuccess"
+              />
+              <el-input
+                v-model="movieForm.playUrl"
+                placeholder="或直接输入视频播放链接"
+                style="margin-top: 10px"
+              />
+            </div>
+          </el-form-item>
+        </el-card>
 
         <el-row :gutter="20">
           <el-col :span="8">
@@ -496,6 +561,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Collection, Search, View, Edit, Delete } from '@element-plus/icons-vue'
+import FileUpload from '@/components/FileUpload.vue'
 import {
   getMovieList,
   createMovie,
@@ -564,6 +630,9 @@ const movieForm = reactive({
 
 const movieFormRef = ref()
 const categoryTreeRef = ref()
+const posterUploadRef = ref()
+const trailerUploadRef = ref()
+const videoUploadRef = ref()
 
 // 表单验证规则
 const movieRules = {
@@ -916,6 +985,33 @@ const resetMovieForm = () => {
     isVip: 0,
     status: 1
   })
+  
+  // 清空文件上传组件
+  posterUploadRef.value?.clearFiles()
+  trailerUploadRef.value?.clearFiles()
+  videoUploadRef.value?.clearFiles()
+}
+
+// 文件上传成功处理
+const handlePosterUploadSuccess = (response) => {
+  if (response.success) {
+    movieForm.posterUrl = response.fileUrl
+    ElMessage.success('海报上传成功')
+  }
+}
+
+const handleTrailerUploadSuccess = (response) => {
+  if (response.success) {
+    movieForm.trailerUrl = response.fileUrl
+    ElMessage.success('预告片上传成功')
+  }
+}
+
+const handleVideoUploadSuccess = (response) => {
+  if (response.success) {
+    movieForm.playUrl = response.fileUrl
+    ElMessage.success('电影视频上传成功')
+  }
 }
 
 // 查看电影分类
@@ -1089,6 +1185,20 @@ onMounted(() => {
   color: #909399;
   font-size: 12px;
   line-height: 1.2;
+}
+
+.upload-section {
+  margin: 20px 0;
+}
+
+.upload-section .upload-title {
+  font-weight: 600;
+  color: #303133;
+}
+
+.file-upload-container .preview-container {
+  margin-top: 10px;
+  text-align: center;
 }
 
 .movie-detail {

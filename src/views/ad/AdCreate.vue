@@ -78,41 +78,17 @@
 
           <el-form-item label="广告图片" prop="imageUrl" required>
             <div class="upload-section">
-              <el-upload
-                ref="uploadRef"
-                :action="uploadAction"
-                :headers="uploadHeaders"
-                :show-file-list="false"
-                :before-upload="beforeImageUpload"
-                :on-success="handleImageSuccess"
-                :on-error="handleImageError"
-                accept="image/*"
-                drag
-              >
-                <div v-if="!form.imageUrl" class="upload-dragger">
-                  <el-icon class="upload-icon"><Upload /></el-icon>
-                  <div class="upload-text">点击或拖拽上传图片</div>
-                  <div class="upload-tip">支持 JPG、PNG、GIF 格式，大小不超过 5MB</div>
-                </div>
-                <div v-else class="image-preview">
-                  <el-image
-                    :src="form.imageUrl"
-                    fit="cover"
-                    style="width: 100%; height: 200px;"
-                  >
-                    <template #error>
-                      <div class="image-error">
-                        <el-icon><Picture /></el-icon>
-                        <p>图片加载失败</p>
-                      </div>
-                    </template>
-                  </el-image>
-                  <div class="image-actions">
-                    <el-button size="small" @click.stop="handlePreviewImage">预览</el-button>
-                    <el-button size="small" type="danger" @click.stop="handleRemoveImage">删除</el-button>
-                  </div>
-                </div>
-              </el-upload>
+              <FileUpload
+                ref="imageUploadRef"
+                category="ad"
+                :related-id="form.id"
+                url-type="image"
+                :auto-update-db="!!form.id"
+                upload-text="上传广告图片"
+                :max-size="10"
+                :file-types="['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp']"
+                @upload-success="handleImageUploadSuccess"
+              />
               
               <div class="manual-input" style="margin-top: 10px;">
                 <el-input
@@ -122,17 +98,54 @@
                   <template #prepend>图片URL</template>
                 </el-input>
               </div>
+              
+              <div v-if="form.imageUrl" class="image-preview" style="margin-top: 10px;">
+                <el-image
+                  :src="form.imageUrl"
+                  :preview-src-list="[form.imageUrl]"
+                  fit="cover"
+                  style="width: 200px; height: 120px; border-radius: 4px;"
+                  preview-teleported
+                >
+                  <template #error>
+                    <div class="image-error">
+                      <el-icon><Picture /></el-icon>
+                      <p>图片加载失败</p>
+                    </div>
+                  </template>
+                </el-image>
+                <div class="image-actions" style="margin-top: 8px;">
+                  <el-button size="small" @click="handlePreviewImage">预览</el-button>
+                  <el-button size="small" type="danger" @click="handleRemoveImage">删除</el-button>
+                </div>
+              </div>
             </div>
           </el-form-item>
 
-          <el-form-item label="视频链接" prop="videoUrl">
-            <el-input
-              v-model="form.videoUrl"
-              placeholder="请输入视频链接（选填）"
-            >
-              <template #prepend>视频URL</template>
-            </el-input>
-            <div class="form-tip">支持 MP4、WebM 等格式的视频链接</div>
+          <el-form-item label="广告视频" prop="videoUrl">
+            <div class="upload-section">
+              <FileUpload
+                ref="videoUploadRef"
+                category="ad"
+                :related-id="form.id"
+                url-type="video"
+                :auto-update-db="!!form.id"
+                upload-text="上传广告视频"
+                :max-size="500"
+                :file-types="['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm']"
+                @upload-success="handleVideoUploadSuccess"
+              />
+              
+              <div class="manual-input" style="margin-top: 10px;">
+                <el-input
+                  v-model="form.videoUrl"
+                  placeholder="或直接输入视频链接"
+                >
+                  <template #prepend>视频URL</template>
+                </el-input>
+              </div>
+              <div class="form-tip">支持 MP4、AVI、MOV 等格式，大小不超过 500MB</div>
+            </div>
           </el-form-item>
 
           <el-form-item label="跳转链接" prop="linkUrl">
@@ -270,19 +283,22 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Upload, Picture } from '@element-plus/icons-vue'
+import FileUpload from '@/components/FileUpload.vue'
 import { advertisementApi, advertisementHelper, AD_POSITION_OPTIONS } from '@/api/advertisement'
 
 export default {
   name: 'AdCreate',
   components: {
     Upload,
-    Picture
+    Picture,
+    FileUpload
   },
   setup() {
     const router = useRouter()
     const route = useRoute()
     const formRef = ref(null)
-    const uploadRef = ref(null)
+    const imageUploadRef = ref(null)
+    const videoUploadRef = ref(null)
     const submitting = ref(false)
     const previewVisible = ref(false)
     const enableTimeRange = ref(false)
@@ -293,6 +309,7 @@ export default {
 
     // 表单数据
     const form = reactive({
+      id: null,
       title: '',
       imageUrl: '',
       videoUrl: '',
@@ -306,12 +323,6 @@ export default {
 
     // 广告位置选项
     const positionOptions = AD_POSITION_OPTIONS
-
-    // 上传配置
-    const uploadAction = '/images/upload'
-    const uploadHeaders = {
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
-    }
 
     // 表单验证规则
     const rules = {
@@ -392,36 +403,19 @@ export default {
       }
     }
 
-    // 图片上传前验证
-    const beforeImageUpload = (file) => {
-      const isImage = file.type.startsWith('image/')
-      const isLt5M = file.size / 1024 / 1024 < 5
-
-      if (!isImage) {
-        ElMessage.error('只能上传图片文件!')
-        return false
-      }
-      if (!isLt5M) {
-        ElMessage.error('图片大小不能超过 5MB!')
-        return false
-      }
-      return true
-    }
-
-    // 图片上传成功
-    const handleImageSuccess = (response) => {
-      if (response.code === 200) {
-        form.imageUrl = response.data.url || response.data
-        ElMessage.success('图片上传成功')
-      } else {
-        ElMessage.error(response.message || '图片上传失败')
+    // 文件上传成功处理
+    const handleImageUploadSuccess = (response) => {
+      if (response.success) {
+        form.imageUrl = response.fileUrl
+        ElMessage.success('广告图片上传成功')
       }
     }
 
-    // 图片上传失败
-    const handleImageError = (error) => {
-      console.error('图片上传失败:', error)
-      ElMessage.error('图片上传失败')
+    const handleVideoUploadSuccess = (response) => {
+      if (response.success) {
+        form.videoUrl = response.fileUrl
+        ElMessage.success('广告视频上传成功')
+      }
     }
 
     // 预览图片
@@ -441,6 +435,7 @@ export default {
         if (response.code === 200) {
           const data = response.data
           Object.assign(form, {
+            id: data.id,
             title: data.title,
             imageUrl: data.imageUrl,
             videoUrl: data.videoUrl || '',
@@ -497,8 +492,19 @@ export default {
           response = await advertisementApi.createAdvertisement(submitData)
         }
 
-        if (response.code === 200) {
+        // 处理不同的响应格式
+        if (response.code === 200 || response.code === 201 || response.id) {
           ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
+          
+          // 如果是新创建的广告，设置ID以便后续文件上传
+          if (!isEdit.value) {
+            const adId = response.data?.id || response.id
+            if (adId) {
+              form.id = adId
+              ElMessage.info(`广告ID: ${adId}，现在可以上传相关文件`)
+            }
+          }
+          
           router.push('/ad/list')
         } else {
           ElMessage.error(response.message || (isEdit.value ? '更新失败' : '创建失败'))
@@ -515,6 +521,10 @@ export default {
     const handleReset = () => {
       formRef.value.resetFields()
       enableTimeRange.value = false
+      
+      // 清空文件上传组件
+      imageUploadRef.value?.clearFiles()
+      videoUploadRef.value?.clearFiles()
     }
 
     // 返回列表
@@ -530,7 +540,8 @@ export default {
 
     return {
       formRef,
-      uploadRef,
+      imageUploadRef,
+      videoUploadRef,
       submitting,
       previewVisible,
       enableTimeRange,
@@ -538,14 +549,11 @@ export default {
       form,
       rules,
       positionOptions,
-      uploadAction,
-      uploadHeaders,
       getPositionDescription,
       getAdType,
       handleTimeRangeChange,
-      beforeImageUpload,
-      handleImageSuccess,
-      handleImageError,
+      handleImageUploadSuccess,
+      handleVideoUploadSuccess,
       handlePreviewImage,
       handleRemoveImage,
       handleSubmit,

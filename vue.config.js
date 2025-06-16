@@ -118,6 +118,23 @@ module.exports = defineConfig({
         logLevel: 'debug'
       },
       
+      // 文件上传服务代理 - 端口8068
+      '/api/files': {
+        target: 'http://localhost:8068', // FileUploadService 端口
+        changeOrigin: true,
+        secure: false,
+        logLevel: 'debug',
+        timeout: 300000 // 5分钟超时，适合大文件上传
+      },
+      
+      // 静态文件访问代理 - 端口8068
+      '/uploads': {
+        target: 'http://localhost:8068', // FileUploadService 端口
+        changeOrigin: true,
+        secure: false,
+        logLevel: 'debug'
+      },
+      
       // 默认API代理到网关 - 端口8080 (最通用的放在最后)
       '/api': {
         target: 'http://localhost:8080', // 默认网关端口
