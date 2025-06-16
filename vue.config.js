@@ -46,6 +46,14 @@ module.exports = defineConfig({
         logLevel: 'debug'
       },
 
+      // VIP支付服务代理 - 端口8066
+      '/api/payment': {
+        target: 'http://localhost:8066', // VIPpayService 端口
+        changeOrigin: true,
+        secure: false,
+        logLevel: 'debug'
+      },
+
       // 用户服务代理 - 端口8062
       '/api/users': {
         target: 'http://localhost:8062', // UserService 端口

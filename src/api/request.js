@@ -26,6 +26,20 @@ service.interceptors.request.use(
         config.baseURL = 'http://localhost:8062' // UserService端口
       } else if (config.url.includes('/api/rbac')) {
         config.baseURL = 'http://localhost:8067' // RBACService端口
+      } else if (config.url.includes('/api/payment')) {
+        config.baseURL = 'http://localhost:8066' // VIPpayService端口
+      } else if (config.url.includes('/api/movies')) {
+        config.baseURL = 'http://localhost:8061' // MovieService端口
+      } else if (config.url.includes('/api/categories')) {
+        config.baseURL = 'http://localhost:8063' // CategoriesService端口
+      } else if (config.url.includes('/api/news')) {
+        config.baseURL = 'http://localhost:8064' // NewsAndFeedbackService端口
+      } else if (config.url.includes('/api/advertisements')) {
+        config.baseURL = 'http://localhost:8065' // AdService端口
+      } else if (config.url.includes('/api/files')) {
+        config.baseURL = 'http://localhost:8068' // FileUploadService端口
+      } else if (config.url.includes('/api/statistics')) {
+        config.baseURL = 'http://localhost:8069' // StatisticsService端口
       } else {
         config.baseURL = 'http://localhost:8080' // 默认网关端口
       }
