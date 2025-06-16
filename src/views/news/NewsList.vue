@@ -469,7 +469,7 @@ export default {
     justify-content: space-between;
     align-items: center;
   }
-
+  
   .search-container {
     margin-bottom: 20px;
     padding: 20px;
@@ -525,7 +525,7 @@ export default {
 
       p {
         margin: 8px 0;
-        color: #666;
+    color: #666;
       }
     }
 

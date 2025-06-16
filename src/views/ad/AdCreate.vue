@@ -251,7 +251,7 @@
                 <el-descriptions-item label="广告类型">{{ getAdType() }}</el-descriptions-item>
               </el-descriptions>
             </div>
-          </div>
+      </div>
         </el-card>
 
         <!-- 操作按钮 -->
@@ -571,7 +571,7 @@ export default {
     justify-content: space-between;
     align-items: center;
   }
-
+  
   .form-section {
     margin-bottom: 20px;
     
@@ -682,7 +682,7 @@ export default {
     .preview-image {
       display: flex;
       justify-content: center;
-      padding: 20px;
+    padding: 20px;
       border: 1px dashed #dcdfe6;
       border-radius: 4px;
       background-color: #fafafa;

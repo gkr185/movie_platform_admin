@@ -639,7 +639,7 @@ export default {
     justify-content: space-between;
     align-items: center;
   }
-
+  
   .search-section {
     margin-bottom: 20px;
     padding: 20px;

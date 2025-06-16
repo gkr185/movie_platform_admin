@@ -6,7 +6,15 @@ module.exports = defineConfig({
   devServer: {
     port: 8080, // 前端开发服务器端口
     proxy: {
-      // 新闻和反馈服务代理 - 端口8064 (最具体的路径放在前面)
+      // 统计服务代理 - 端口8068 (最具体的路径放在前面)
+      '/api/statistics': {
+        target: 'http://localhost:8069', // StatisticsService 端口
+        changeOrigin: true,
+        secure: false,
+        logLevel: 'debug'
+      },
+
+      // 新闻和反馈服务代理 - 端口8064
       '/api/news': {
         target: 'http://localhost:8064', // NewsAndFeedbackService 端口
         changeOrigin: true,
