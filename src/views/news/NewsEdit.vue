@@ -1,13 +1,15 @@
 <template>
-  <div class="news-create">
+  <div class="news-edit">
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>发布新闻</span>
+          <span>编辑新闻</span>
           <div class="header-actions">
             <el-button @click="$router.back()">返回</el-button>
-            <el-button type="primary" @click="handleSaveDraft" :loading="saving">保存草稿</el-button>
-            <el-button type="success" @click="handlePublish" :loading="publishing">发布</el-button>
+            <el-button type="primary" @click="handleSave" :loading="saving">保存</el-button>
+            <el-button v-if="form.status === 0" type="success" @click="handlePublish" :loading="publishing">
+              发布
+            </el-button>
           </div>
         </div>
       </template>
@@ -18,6 +20,7 @@
         :rules="rules"
         label-width="100px"
         size="large"
+        v-loading="loading"
       >
         <el-row :gutter="20">
           <el-col :span="16">
@@ -80,6 +83,9 @@
                   <div class="upload-tips">
                     <p>建议上传16:9比例的图片，文件大小不超过2MB</p>
                     <p>支持JPG、PNG格式</p>
+                    <el-button v-if="form.cover_image" size="small" type="danger" @click="removeCover">
+                      删除图片
+                    </el-button>
                   </div>
                 </div>
               </el-form-item>
@@ -174,28 +180,21 @@
               </el-form-item>
             </el-card>
 
-            <!-- 分类管理 -->
+            <!-- 新闻信息 -->
             <el-card class="form-section" shadow="never">
               <template #header>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span>分类管理</span>
-                  <el-button type="primary" size="small" @click="categoryDialogVisible = true">
-                    新增分类
-                  </el-button>
-                </div>
+                <span>新闻信息</span>
               </template>
-
-              <div class="category-list">
-                <el-tag
-                  v-for="category in categories"
-                  :key="category.id"
-                  :type="category.status === 1 ? 'success' : 'info'"
-                  class="category-tag"
-                  closable
-                  @close="handleDeleteCategory(category.id)"
-                >
-                  {{ category.name }}
-                </el-tag>
+              
+              <div class="news-info">
+                <p><strong>新闻ID:</strong> {{ form.id }}</p>
+                <p><strong>创建时间:</strong> {{ formatDateTime(originalData?.createTime) }}</p>
+                <p><strong>更新时间:</strong> {{ formatDateTime(originalData?.updateTime) }}</p>
+                <p><strong>当前状态:</strong> 
+                  <el-tag :type="form.status === 1 ? 'success' : 'info'" size="small">
+                    {{ form.status === 1 ? '已发布' : '草稿' }}
+                  </el-tag>
+                </p>
               </div>
             </el-card>
 
@@ -207,96 +206,64 @@
               <div class="operation-history">
                 <p class="history-item">
                   <el-icon><Clock /></el-icon>
-                  {{ new Date().toLocaleString() }} 创建草稿
+                  {{ formatDateTime(originalData?.createTime) }} 创建新闻
                 </p>
-      </div>
+                <p v-if="originalData?.updateTime !== originalData?.createTime" class="history-item">
+                  <el-icon><Edit /></el-icon>
+                  {{ formatDateTime(originalData?.updateTime) }} 最后更新
+                </p>
+              </div>
             </el-card>
           </el-col>
         </el-row>
       </el-form>
     </el-card>
-
-    <!-- 分类创建对话框 -->
-    <el-dialog
-      v-model="categoryDialogVisible"
-      title="新增分类"
-      width="500px"
-      destroy-on-close
-    >
-      <el-form
-        ref="categoryFormRef"
-        :model="categoryForm"
-        :rules="categoryRules"
-        label-width="80px"
-      >
-        <el-form-item label="分类名称" prop="name">
-          <el-input v-model="categoryForm.name" placeholder="请输入分类名称" maxlength="20" />
-        </el-form-item>
-        <el-form-item label="分类描述" prop="description">
-          <el-input
-            v-model="categoryForm.description"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入分类描述"
-            maxlength="100"
-          />
-        </el-form-item>
-        <el-form-item label="排序权重" prop="sortOrder">
-          <el-input-number v-model="categoryForm.sortOrder" :min="1" :max="100" />
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="categoryDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleCreateCategory" :loading="categoryCreating">
-            确定
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { useRouter, useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { 
   Plus, 
   Document, 
   List, 
   ChatLineSquare, 
   Picture, 
-  Clock 
+  Clock,
+  Edit
 } from '@element-plus/icons-vue'
-import { newsApi, newsCategoryApi, imageApi } from '@/api/news'
+import { newsApi, newsCategoryApi } from '@/api/news'
 
 export default {
-  name: 'NewsCreate',
+  name: 'NewsEdit',
   components: {
     Plus,
     Document,
     List,
     ChatLineSquare,
     Picture,
-    Clock
+    Clock,
+    Edit
   },
   setup() {
     const router = useRouter()
+    const route = useRoute()
     const formRef = ref(null)
-    const categoryFormRef = ref(null)
     
+    const loading = ref(false)
     const saving = ref(false)
     const publishing = ref(false)
-    const categoryCreating = ref(false)
-    const categoryDialogVisible = ref(false)
     
     const categories = ref([])
+    const originalData = ref(null)
     const uploadAction = ref('/images/upload')
+    const newsId = route.params.id
 
     // 新闻表单
     const form = reactive({
+      id: null,
       title: '',
       content: '',
       author: '',
@@ -306,14 +273,6 @@ export default {
       status: 0,
       categoryId: null,
       publishTime: null
-    })
-
-    // 分类表单
-    const categoryForm = reactive({
-      name: '',
-      description: '',
-      sortOrder: 1,
-      status: 1
     })
 
     // 表单验证规则
@@ -337,20 +296,6 @@ export default {
       ]
     }
 
-    // 分类表单验证规则
-    const categoryRules = {
-      name: [
-        { required: true, message: '请输入分类名称', trigger: 'blur' },
-        { min: 2, max: 20, message: '分类名称长度在 2 到 20 个字符', trigger: 'blur' }
-      ],
-      description: [
-        { max: 100, message: '描述不能超过100个字符', trigger: 'blur' }
-      ],
-      sortOrder: [
-        { required: true, message: '请输入排序权重', trigger: 'blur' }
-      ]
-    }
-
     // 渲染的内容（简单的Markdown转HTML）
     const renderedContent = computed(() => {
       if (!form.content) return ''
@@ -362,6 +307,64 @@ export default {
         .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
         .replace(/\n/g, '<br>')
     })
+
+    // 获取新闻详情
+    const fetchNewsDetail = async () => {
+      if (!newsId) {
+        ElMessage.error('缺少新闻ID')
+        router.back()
+        return
+      }
+
+      try {
+        loading.value = true
+        const response = await newsApi.getNewsDetail(newsId)
+        console.log('获取新闻详情API响应:', response)
+        
+        // 处理不同的响应格式
+        let data = null
+        if (response && response.code === 200) {
+          // 标准响应格式
+          data = response.data
+        } else if (response && typeof response === 'object' && response.id) {
+          // 直接返回新闻对象
+          data = response
+        } else if (response && response.data && typeof response.data === 'object') {
+          // 包装在data字段中的对象
+          data = response.data
+        }
+        
+        if (data) {
+          originalData.value = data
+          console.log('新闻详情数据:', data)
+          
+          // 填充表单数据
+          Object.assign(form, {
+            id: data.id,
+            title: data.title || '',
+            content: data.content || '',
+            author: data.author || '',
+            source: data.source || '',
+            cover_image: data.cover_image || '',
+            is_top: data.is_top || 0,
+            status: data.status || 0,
+            categoryId: data.category?.id || data.categoryId || null,
+            publishTime: data.publishTime ? new Date(data.publishTime) : null
+          })
+          
+          console.log('填充后的表单数据:', form)
+        } else {
+          ElMessage.error('获取新闻详情失败')
+          router.back()
+        }
+      } catch (error) {
+        console.error('获取新闻详情失败:', error)
+        ElMessage.error('获取新闻详情失败')
+        router.back()
+      } finally {
+        loading.value = false
+      }
+    }
 
     // 获取分类列表
     const fetchCategories = async () => {
@@ -399,6 +402,11 @@ export default {
       }
       
       form.content += templates[type] || ''
+    }
+
+    // 删除封面
+    const removeCover = () => {
+      form.cover_image = ''
     }
 
     // 封面上传成功
@@ -468,7 +476,7 @@ export default {
       ElMessage.error('上传失败')
     }
 
-    // 封面上传前检查
+    // 上传前检查
     const beforeCoverUpload = (file) => {
       const isImage = /^image\//.test(file.type)
       const isLt2M = file.size / 1024 / 1024 < 2
@@ -484,28 +492,28 @@ export default {
       return true
     }
 
-    // 内容图片上传前检查
     const beforeImageUpload = (file) => {
       return beforeCoverUpload(file)
     }
 
-    // 保存草稿
-    const handleSaveDraft = async () => {
+    // 保存新闻
+    const handleSave = async () => {
       try {
         const valid = await formRef.value.validate()
         if (!valid) return
 
         saving.value = true
         
-        // 构建新闻数据
+        // 构建新闻数据，确保格式正确
         const newsData = {
+          id: form.id,
           title: form.title,
           content: form.content,
           author: form.author,
           source: form.source,
           cover_image: form.cover_image,
           is_top: form.is_top,
-          status: 0
+          status: form.status
         }
 
         // 只有当分类ID存在时才添加分类信息
@@ -513,17 +521,22 @@ export default {
           newsData.category = { id: form.categoryId }
         }
 
-        console.log('发送的草稿数据:', newsData)
+        // 只有当发布时间存在时才添加
+        if (form.publishTime) {
+          newsData.publishTime = form.publishTime.toISOString()
+        }
 
-        const response = await newsApi.createNews(newsData)
-        console.log('保存草稿API响应:', response)
+        console.log('发送的新闻数据:', newsData)
+
+        const response = await newsApi.updateNews(newsData)
+        console.log('保存新闻API响应:', response)
         
         // 处理不同的响应格式
         let success = false
         let errorMessage = '保存失败'
         
         if (response && response.code === 200) {
-          // 标准成功响应格式
+          // 标准成功响应格式 {code: 200, data: {...}}
           success = true
         } else if (response && typeof response === 'object' && response.id) {
           // 直接返回新闻对象格式 {id: 1, title: "...", ...}
@@ -546,13 +559,14 @@ export default {
         }
         
         if (success) {
-          ElMessage.success('草稿保存成功')
-          router.push('/news/list')
+          ElMessage.success('保存成功')
+          // 重新获取数据以更新显示
+          await fetchNewsDetail()
         } else {
           ElMessage.error(errorMessage)
         }
       } catch (error) {
-        console.error('保存草稿失败:', error)
+        console.error('保存新闻失败:', error)
         
         // 处理网络错误或其他异常
         let errorMessage = '保存失败'
@@ -587,6 +601,7 @@ export default {
         
         // 构建发布数据
         const newsData = {
+          id: form.id,
           title: form.title,
           content: form.content,
           author: form.author,
@@ -594,7 +609,7 @@ export default {
           cover_image: form.cover_image,
           is_top: form.is_top,
           status: 1,
-          publishTime: form.publishTime || new Date().toISOString()
+          publishTime: new Date().toISOString()
         }
 
         // 只有当分类ID存在时才添加分类信息
@@ -604,7 +619,7 @@ export default {
 
         console.log('发送的发布数据:', newsData)
 
-        const response = await newsApi.createNews(newsData)
+        const response = await newsApi.updateNews(newsData)
         console.log('发布新闻API响应:', response)
         
         // 处理不同的响应格式
@@ -613,9 +628,6 @@ export default {
         
         if (response && response.code === 200) {
           // 标准成功响应格式
-          success = true
-        } else if (response && typeof response === 'object' && response.id) {
-          // 直接返回新闻对象格式 {id: 1, title: "...", ...}
           success = true
         } else if (response === null || response === undefined || response === '') {
           // 发布成功可能返回空响应
@@ -635,8 +647,12 @@ export default {
         }
         
         if (success) {
-          ElMessage.success('新闻发布成功')
-          router.push('/news/list')
+          ElMessage.success('发布成功')
+          // 更新表单状态
+          form.status = 1
+          form.publishTime = new Date()
+          // 重新获取数据
+          await fetchNewsDetail()
         } else {
           ElMessage.error(errorMessage)
         }
@@ -666,133 +682,45 @@ export default {
       }
     }
 
-    // 创建分类
-    const handleCreateCategory = async () => {
-      try {
-        const valid = await categoryFormRef.value.validate()
-        if (!valid) return
-
-        categoryCreating.value = true
-        
-        const response = await newsCategoryApi.createCategory(categoryForm)
-        console.log('创建分类API响应:', response)
-        
-        // 处理不同的响应格式
-        let success = false
-        if (response && response.code === 200) {
-          // 标准响应格式
-          success = true
-        } else if (response && typeof response === 'object' && response.id) {
-          // 直接返回分类对象
-          success = true
-        } else if (response === null || response === undefined || response === '') {
-          // 创建成功可能返回空响应
-          success = true
-        }
-        
-        if (success) {
-          ElMessage.success('分类创建成功')
-          categoryDialogVisible.value = false
-          
-          // 重置表单
-          Object.assign(categoryForm, {
-            name: '',
-            description: '',
-            sortOrder: 1,
-            status: 1
-          })
-          
-          // 刷新分类列表
-          fetchCategories()
-        } else {
-          ElMessage.error(response?.message || '创建失败')
-        }
-      } catch (error) {
-        console.error('创建分类失败:', error)
-        ElMessage.error('创建失败')
-      } finally {
-        categoryCreating.value = false
-      }
-    }
-
-    // 删除分类
-    const handleDeleteCategory = async (categoryId) => {
-      try {
-        await ElMessageBox.confirm(
-          '确定要删除这个分类吗？',
-          '确认删除',
-          {
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
-            type: 'warning'
-          }
-        )
-
-        const response = await newsCategoryApi.deleteCategory(categoryId)
-        console.log('删除分类API响应:', response)
-        
-        // 判断删除是否成功
-        let success = false
-        if (response && response.code === 200) {
-          // 标准响应格式
-          success = true
-        } else if (response === null || response === undefined || response === '') {
-          // 删除成功可能返回空响应
-          success = true
-        } else if (response && response.success === true) {
-          // 其他成功标识
-          success = true
-        }
-        
-        if (success) {
-          ElMessage.success('分类删除成功')
-          fetchCategories()
-        } else {
-          ElMessage.error(response?.message || '删除失败')
-        }
-      } catch (error) {
-        if (error !== 'cancel') {
-          console.error('删除分类失败:', error)
-          ElMessage.error('删除失败')
-        }
-      }
+    // 格式化日期时间
+    const formatDateTime = (dateTime) => {
+      if (!dateTime) return '-'
+      return new Date(dateTime).toLocaleString('zh-CN')
     }
 
     onMounted(() => {
+      fetchNewsDetail()
       fetchCategories()
     })
 
     return {
       formRef,
-      categoryFormRef,
+      loading,
       saving,
       publishing,
-      categoryCreating,
-      categoryDialogVisible,
       categories,
+      originalData,
       uploadAction,
       form,
-      categoryForm,
       rules,
-      categoryRules,
       renderedContent,
       insertTemplate,
+      removeCover,
       handleCoverSuccess,
       handleContentImageSuccess,
       handleUploadError,
       beforeCoverUpload,
       beforeImageUpload,
-      handleSaveDraft,
+      handleSave,
       handlePublish,
-      handleCreateCategory,
-      handleDeleteCategory
+      formatDateTime
     }
   }
 }
 </script>
 
 <style lang="scss" scoped>
-.news-create {
+.news-edit {
   .card-header {
     display: flex;
     justify-content: space-between;
@@ -803,12 +731,12 @@ export default {
       gap: 12px;
     }
   }
-  
+
   .form-section {
     margin-bottom: 20px;
     
     .el-card__body {
-    padding: 20px;
+      padding: 20px;
     }
   }
 
@@ -908,9 +836,11 @@ export default {
     }
   }
 
-  .category-list {
-    .category-tag {
-      margin: 4px 8px 4px 0;
+  .news-info {
+    p {
+      margin: 8px 0;
+      color: #666;
+      font-size: 14px;
     }
   }
 
@@ -920,7 +850,7 @@ export default {
       align-items: center;
       gap: 8px;
       margin: 8px 0;
-    color: #666;
+      color: #666;
       font-size: 14px;
     }
   }

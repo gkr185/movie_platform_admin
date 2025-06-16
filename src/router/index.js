@@ -157,6 +157,16 @@ const routes = [
           permission: 'ad:create'
         }
       },
+      {
+        path: '/ad/edit/:id',
+        name: 'AdEdit',
+        component: () => import('../views/ad/AdEdit.vue'),
+        meta: { 
+          title: '编辑广告',
+          requiresAuth: true,
+          permission: 'ad:update'
+        }
+      },
       
       // 新闻资讯
       {
@@ -177,6 +187,16 @@ const routes = [
           title: '发布新闻',
           requiresAuth: true,
           permission: 'news:create'
+        }
+      },
+      {
+        path: '/news/edit/:id',
+        name: 'NewsEdit',
+        component: () => import('../views/news/NewsEdit.vue'),
+        meta: { 
+          title: '编辑新闻',
+          requiresAuth: true,
+          permission: 'news:update'
         }
       },
       {

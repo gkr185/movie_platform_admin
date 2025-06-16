@@ -25,35 +25,59 @@
         </el-menu-item>
 
         <!-- 用户管理 -->
-        <el-sub-menu index="user" v-if="hasAnyPermission(['user:view', 'user:manage'])">
+        <el-sub-menu index="user" v-if="hasAnyPermission(['user:view', 'user:manage', 'user:vip'])">
           <template #title>
             <el-icon><User /></el-icon>
             <span>用户管理</span>
           </template>
-          <el-menu-item index="/user/list" v-if="hasPermission('user:view')">用户列表</el-menu-item>
-          <el-menu-item index="/user/vip" v-if="hasPermission('user:vip')">VIP管理</el-menu-item>
+          <el-menu-item index="/user/list" v-if="hasPermission('user:view')">
+            <el-icon><List /></el-icon>
+            <template #title>用户列表</template>
+          </el-menu-item>
+          <el-menu-item index="/user/vip" v-if="hasPermission('user:vip')">
+            <el-icon><CreditCard /></el-icon>
+            <template #title>VIP管理</template>
+          </el-menu-item>
         </el-sub-menu>
 
         <!-- 权限管理 -->
-        <el-sub-menu index="rbac" v-if="hasAnyPermission(['rbac:view', 'rbac:manage']) || isAdmin">
+        <el-sub-menu index="rbac" v-if="hasAnyPermission(['rbac:view', 'rbac:manage', 'rbac:role', 'rbac:permission', 'rbac:assign']) || isAdmin">
           <template #title>
             <el-icon><Lock /></el-icon>
             <span>权限管理</span>
           </template>
-          <el-menu-item index="/rbac/roles" v-if="hasPermission('rbac:role') || isAdmin">角色管理</el-menu-item>
-          <el-menu-item index="/rbac/permissions" v-if="hasPermission('rbac:permission') || isAdmin">权限管理</el-menu-item>
-          <el-menu-item index="/rbac/assign" v-if="hasPermission('rbac:assign') || isAdmin">权限分配</el-menu-item>
+          <el-menu-item index="/rbac/roles" v-if="hasPermission('rbac:role') || isAdmin">
+            <el-icon><User /></el-icon>
+            <template #title>角色管理</template>
+          </el-menu-item>
+          <el-menu-item index="/rbac/permissions" v-if="hasPermission('rbac:permission') || isAdmin">
+            <el-icon><Lock /></el-icon>
+            <template #title>权限管理</template>
+          </el-menu-item>
+          <el-menu-item index="/rbac/assign" v-if="hasPermission('rbac:assign') || isAdmin">
+            <el-icon><Setting /></el-icon>
+            <template #title>权限分配</template>
+          </el-menu-item>
         </el-sub-menu>
 
         <!-- 电影管理 -->
-        <el-sub-menu index="movie" v-if="hasAnyPermission(['movie:view', 'movie:manage'])">
+        <el-sub-menu index="movie" v-if="hasAnyPermission(['movie:view', 'movie:manage', 'movie:upload', 'movie:review'])">
           <template #title>
             <el-icon><VideoPlay /></el-icon>
             <span>电影管理</span>
           </template>
-          <el-menu-item index="/movie/list" v-if="hasPermission('movie:view')">电影列表</el-menu-item>
-          <el-menu-item index="/movie/upload" v-if="hasPermission('movie:upload')">上传电影</el-menu-item>
-          <el-menu-item index="/movie/reviews" v-if="hasPermission('movie:review')">影评管理</el-menu-item>
+          <el-menu-item index="/movie/list" v-if="hasPermission('movie:view')">
+            <el-icon><List /></el-icon>
+            <template #title>电影列表</template>
+          </el-menu-item>
+          <el-menu-item index="/movie/upload" v-if="hasPermission('movie:upload')">
+            <el-icon><Upload /></el-icon>
+            <template #title>上传电影</template>
+          </el-menu-item>
+          <el-menu-item index="/movie/reviews" v-if="hasPermission('movie:review')">
+            <el-icon><ChatDotRound /></el-icon>
+            <template #title>影评管理</template>
+          </el-menu-item>
         </el-sub-menu>
 
         <!-- 分类管理 -->
@@ -63,34 +87,55 @@
         </el-menu-item>
 
         <!-- 广告管理 -->
-        <el-sub-menu index="ad" v-if="hasAnyPermission(['ad:view', 'ad:manage'])">
+        <el-sub-menu index="ad" v-if="hasAnyPermission(['ad:view', 'ad:manage', 'ad:create'])">
           <template #title>
             <el-icon><Picture /></el-icon>
             <span>广告管理</span>
           </template>
-          <el-menu-item index="/ad/list" v-if="hasPermission('ad:view')">广告列表</el-menu-item>
-          <el-menu-item index="/ad/create" v-if="hasPermission('ad:create')">创建广告</el-menu-item>
+          <el-menu-item index="/ad/list" v-if="hasPermission('ad:view')">
+            <el-icon><List /></el-icon>
+            <template #title>广告列表</template>
+          </el-menu-item>
+          <el-menu-item index="/ad/create" v-if="hasPermission('ad:create')">
+            <el-icon><Plus /></el-icon>
+            <template #title>创建广告</template>
+          </el-menu-item>
         </el-sub-menu>
 
         <!-- 新闻资讯 -->
-        <el-sub-menu index="news" v-if="hasAnyPermission(['news:view', 'news:manage'])">
+        <el-sub-menu index="news" v-if="hasAnyPermission(['news:view', 'news:create', 'news:update', 'news:delete', 'news:feedback', 'news:manage'])">
           <template #title>
             <el-icon><Document /></el-icon>
             <span>新闻资讯</span>
           </template>
-          <el-menu-item index="/news/list" v-if="hasPermission('news:view')">新闻列表</el-menu-item>
-          <el-menu-item index="/news/create" v-if="hasPermission('news:create')">发布新闻</el-menu-item>
-          <el-menu-item index="/news/feedback" v-if="hasPermission('news:feedback')">用户反馈</el-menu-item>
+          <el-menu-item index="/news/list" v-if="hasPermission('news:view')">
+            <el-icon><List /></el-icon>
+            <template #title>新闻列表</template>
+          </el-menu-item>
+          <el-menu-item index="/news/create" v-if="hasPermission('news:create')">
+            <el-icon><EditPen /></el-icon>
+            <template #title>发布新闻</template>
+          </el-menu-item>
+          <el-menu-item index="/news/feedback" v-if="hasPermission('news:feedback')">
+            <el-icon><ChatDotRound /></el-icon>
+            <template #title>用户反馈</template>
+          </el-menu-item>
         </el-sub-menu>
 
         <!-- VIP支付 -->
-        <el-sub-menu index="payment" v-if="hasAnyPermission(['payment:view', 'payment:manage'])">
+        <el-sub-menu index="payment" v-if="hasAnyPermission(['payment:view', 'payment:manage', 'payment:order', 'payment:vip'])">
           <template #title>
             <el-icon><CreditCard /></el-icon>
             <span>支付管理</span>
           </template>
-          <el-menu-item index="/payment/orders" v-if="hasPermission('payment:order')">支付订单</el-menu-item>
-          <el-menu-item index="/payment/vip-plans" v-if="hasPermission('payment:vip')">VIP套餐</el-menu-item>
+          <el-menu-item index="/payment/orders" v-if="hasPermission('payment:order')">
+            <el-icon><List /></el-icon>
+            <template #title>支付订单</template>
+          </el-menu-item>
+          <el-menu-item index="/payment/vip-plans" v-if="hasPermission('payment:vip')">
+            <el-icon><CreditCard /></el-icon>
+            <template #title>VIP套餐</template>
+          </el-menu-item>
         </el-sub-menu>
 
         <!-- 系统设置 -->
@@ -153,14 +198,16 @@ import { ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import {
   Platform, User, Lock, VideoPlay, Grid, Picture, Document, 
-  CreditCard, Setting, Expand, Fold, ArrowDown
+  CreditCard, Setting, Expand, Fold, ArrowDown, List, EditPen, ChatDotRound,
+  Plus, Upload
 } from '@element-plus/icons-vue'
 
 export default {
   name: 'AdminLayout',
   components: {
     Platform, User, Lock, VideoPlay, Grid, Picture, Document,
-    CreditCard, Setting, Expand, Fold, ArrowDown
+    CreditCard, Setting, Expand, Fold, ArrowDown, List, EditPen, ChatDotRound,
+    Plus, Upload
   },
   setup() {
     const route = useRoute()

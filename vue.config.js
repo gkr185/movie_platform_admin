@@ -6,6 +6,38 @@ module.exports = defineConfig({
   devServer: {
     port: 8080, // 前端开发服务器端口
     proxy: {
+      // 新闻和反馈服务代理 - 端口8064 (最具体的路径放在前面)
+      '/api/news': {
+        target: 'http://localhost:8064', // NewsAndFeedbackService 端口
+        changeOrigin: true,
+        secure: false,
+        logLevel: 'debug'
+      },
+
+      // 用户反馈相关代理 - 端口8064
+      '/feedback': {
+        target: 'http://localhost:8064', // NewsAndFeedbackService 端口
+        changeOrigin: true,
+        secure: false,
+        logLevel: 'debug'
+      },
+
+      // 图片管理相关代理 - 端口8064
+      '/images': {
+        target: 'http://localhost:8064', // NewsAndFeedbackService 端口
+        changeOrigin: true,
+        secure: false,
+        logLevel: 'debug'
+      },
+
+      // 广告服务代理 - 端口8065
+      '/api/advertisements': {
+        target: 'http://localhost:8065', // AdService 端口
+        changeOrigin: true,
+        secure: false,
+        logLevel: 'debug'
+      },
+
       // 用户服务代理 - 端口8062
       '/api/users': {
         target: 'http://localhost:8062', // UserService 端口
@@ -24,6 +56,22 @@ module.exports = defineConfig({
       
       // 电影服务代理 - 端口8061
       '/api/movies': {
+        target: 'http://localhost:8061', // MovieService 端口
+        changeOrigin: true,
+        secure: false,
+        logLevel: 'debug'
+      },
+      
+      // 电影评论批量操作代理 - 端口8061 (更具体的路径)
+      '/api/comments/batch': {
+        target: 'http://localhost:8061', // MovieService 端口
+        changeOrigin: true,
+        secure: false,
+        logLevel: 'debug'
+      },
+      
+      // 电影评论管理后台代理 - 端口8061
+      '/api/comments/admin': {
         target: 'http://localhost:8061', // MovieService 端口
         changeOrigin: true,
         secure: false,
@@ -70,7 +118,7 @@ module.exports = defineConfig({
         logLevel: 'debug'
       },
       
-      // 默认API代理到网关 - 端口8080
+      // 默认API代理到网关 - 端口8080 (最通用的放在最后)
       '/api': {
         target: 'http://localhost:8080', // 默认网关端口
         changeOrigin: true,

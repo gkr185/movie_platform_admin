@@ -56,6 +56,7 @@ service.interceptors.response.use(
     if (error.response) {
       const { status, data } = error.response
       console.log('错误响应:', status, data)
+      console.log('完整错误响应:', JSON.stringify(error.response, null, 2))
       
       switch (status) {
         case 400:
