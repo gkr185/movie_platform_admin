@@ -41,20 +41,20 @@
         </el-sub-menu>
 
         <!-- 权限管理 -->
-        <el-sub-menu index="rbac" v-if="hasAnyPermission(['rbac:view', 'rbac:manage', 'rbac:role', 'rbac:permission', 'rbac:assign']) || isAdmin">
+        <el-sub-menu index="rbac" v-if="hasAnyPermission(['rbac:view', 'rbac:manage', 'rbac:role', 'rbac:permission', 'rbac:assign'])">
           <template #title>
             <el-icon><Lock /></el-icon>
             <span>权限管理</span>
           </template>
-          <el-menu-item index="/rbac/roles" v-if="hasPermission('rbac:role') || isAdmin">
+          <el-menu-item index="/rbac/roles" v-if="hasPermission('rbac:role')">
             <el-icon><User /></el-icon>
             <template #title>角色管理</template>
           </el-menu-item>
-          <el-menu-item index="/rbac/permissions" v-if="hasPermission('rbac:permission') || isAdmin">
+          <el-menu-item index="/rbac/permissions" v-if="hasPermission('rbac:permission')">
             <el-icon><Lock /></el-icon>
             <template #title>权限管理</template>
           </el-menu-item>
-          <el-menu-item index="/rbac/assign" v-if="hasPermission('rbac:assign') || isAdmin">
+          <el-menu-item index="/rbac/assign" v-if="hasPermission('rbac:assign')">
             <el-icon><Setting /></el-icon>
             <template #title>权限分配</template>
           </el-menu-item>
@@ -123,23 +123,23 @@
         </el-sub-menu>
 
         <!-- VIP支付 -->
-        <el-sub-menu index="payment" v-if="hasAnyPermission(['payment:view', 'payment:manage', 'payment:order', 'payment:vip'])">
+        <el-sub-menu index="payment" v-if="hasAnyPermission(['payment:view', 'vip:manage', 'vip:view', 'vip:audit'])">
           <template #title>
             <el-icon><CreditCard /></el-icon>
             <span>支付管理</span>
           </template>
-          <el-menu-item index="/payment/orders" v-if="hasPermission('payment:order')">
+          <el-menu-item index="/payment/orders" v-if="hasPermission('vip:view')">
             <el-icon><List /></el-icon>
             <template #title>支付订单</template>
           </el-menu-item>
-          <el-menu-item index="/payment/vip-plans" v-if="hasPermission('payment:vip')">
+          <el-menu-item index="/payment/vip-plans" v-if="hasPermission('vip:audit')">
             <el-icon><CreditCard /></el-icon>
             <template #title>VIP套餐</template>
           </el-menu-item>
         </el-sub-menu>
 
         <!-- 系统设置 -->
-        <el-menu-item index="/settings" v-if="hasPermission('system:setting') || isAdmin">
+        <el-menu-item index="/settings" v-if="hasPermission('system:setting')">
           <el-icon><Setting /></el-icon>
           <template #title>系统设置</template>
         </el-menu-item>
@@ -238,14 +238,17 @@ export default {
     // 是否为管理员
     const isAdmin = computed(() => authStore.isAdmin)
     
+    // 是否为超级管理员
+    const isSuperAdmin = computed(() => authStore.isSuperAdmin)
+    
     // 检查权限
     const hasPermission = (permissionCode) => {
-      return authStore.hasPermission(permissionCode) || authStore.isAdmin
+      return authStore.hasPermission(permissionCode) || authStore.isSuperAdmin
     }
     
     // 检查是否有任意一个权限
     const hasAnyPermission = (permissions) => {
-      return permissions.some(permission => hasPermission(permission)) || authStore.isAdmin
+      return permissions.some(permission => authStore.hasPermission(permission)) || authStore.isSuperAdmin
     }
     
     const toggleCollapse = () => {
@@ -283,6 +286,7 @@ export default {
       displayName,
       userAvatar,
       isAdmin,
+      isSuperAdmin,
       hasPermission,
       hasAnyPermission,
       toggleCollapse,

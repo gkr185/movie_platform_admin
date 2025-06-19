@@ -33,14 +33,34 @@ export const useAuthStore = defineStore('auth', {
       return state.roles.some(role => role.name === roleName)
     },
     
-    // 检查是否为管理员
+    // 检查是否为管理员（只要不是普通用户都可以）
     isAdmin: (state) => {
-      return state.roles.some(role => role.name === '管理员' || role.name === 'admin' || role.name === '超级管理员')
+      // 如果没有角色，认为是普通用户
+      if (!state.roles || state.roles.length === 0) {
+        return false
+      }
+      // 只要不是普通用户，都认为有管理权限
+      return !state.roles.every(role => 
+        role.name === '普通用户' || 
+        role.name === 'user' || 
+        role.name === '用户' ||
+        role.name === 'normal_user'
+      )
     },
     
     // 检查是否为VIP用户
     isVip: (state) => {
       return state.user?.isVip === 1
+    },
+    
+    // 检查是否为超级管理员
+    isSuperAdmin: (state) => {
+      return state.roles.some(role => 
+        role.name === '超级管理员' || 
+        role.name === 'super_admin' || 
+        role.name === 'superadmin' ||
+        role.name === '系统管理员'
+      )
     }
   },
 

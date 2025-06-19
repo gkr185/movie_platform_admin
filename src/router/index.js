@@ -243,6 +243,17 @@ const routes = [
           permission: 'system:setting',
           adminOnly: true
         }
+      },
+      
+      // 个人中心
+      {
+        path: '/profile',
+        name: 'Profile',
+        component: () => import('../views/Profile.vue'),
+        meta: { 
+          title: '个人中心',
+          requiresAuth: true
+        }
       }
     ]
   },

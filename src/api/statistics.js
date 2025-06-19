@@ -8,12 +8,15 @@ const STATISTICS_BASE_URL = '/api/statistics'
  */
 export const statisticsApi = {
   /**
-   * 获取每日统计数据（使用overview接口）
+   * 获取每日统计数据
    * @param {string} date - 统计日期(YYYY-MM-DD格式)，可选
    */
   getDailyStatistics: (date) => {
-    const params = date ? { date } : {}
-    return axios.get(`${STATISTICS_BASE_URL}/overview`, { params })
+    if (date) {
+      return axios.get(`${STATISTICS_BASE_URL}/daily/${date}`)
+    } else {
+      return axios.get(`${STATISTICS_BASE_URL}/daily/today`)
+    }
   },
 
   /**

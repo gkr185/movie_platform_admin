@@ -144,7 +144,7 @@
             </el-col>
             <el-col :span="4">
               <div class="daily-stat">
-                <div class="daily-value">{{ dailyStats.newFeedback }}</div>
+                <div class="daily-value">{{ dailyStats.newFeedback || dailyStats.feedbackCount }}</div>
                 <div class="daily-label">新增反馈</div>
               </div>
             </el-col>
@@ -173,7 +173,7 @@
               :key="movie.movieId"
               class="movie-item"
             >
-              <div class="movie-rank">{{ index + 1 }}</div>
+              <div class="movie-rank">{{ movie.rank || index + 1 }}</div>
               <div class="movie-info">
                 <div class="movie-title">{{ movie.title }}</div>
                 <div class="movie-meta">
@@ -182,8 +182,8 @@
                 </div>
               </div>
               <div class="movie-stats">
-                <div class="view-count">{{ formatNumber(movie.viewCount) }}次观看</div>
-                <div class="favorite-count">{{ formatNumber(movie.favoriteCount) }}收藏</div>
+                <div class="view-count">{{ formatNumber(movie.viewCount || movie.view_count) }}次观看</div>
+                <div class="favorite-count">{{ formatNumber(movie.favoriteCount || movie.commentCount || movie.comment_count) }}互动</div>
               </div>
             </div>
           </div>
@@ -409,7 +409,7 @@ export default {
           totalUsers: data.totalUsers || 0,
           totalMovies: data.totalMovies || 0,
           totalViews: data.totalViews || 0,
-          totalRevenue: data.totalRevenue || 0,
+          totalRevenue: data.totalVipRevenue || data.totalRevenue || 0,
           platformRating: data.platformRating || 0,
           recentTrends: data.recentTrends || {}
         })
@@ -421,11 +421,13 @@ export default {
     
     const loadDailyStatistics = async (date) => {
       try {
-        const response = await statisticsApi.getDailyStatistics(date)
+        // 格式化日期为 YYYY-MM-DD 格式
+        const formattedDate = date ? (typeof date === 'string' ? date : date.toISOString().split('T')[0]) : null
+        const response = await statisticsApi.getDailyStatistics(formattedDate)
         const data = response.data?.data || response.data
         
         Object.assign(dailyStats, {
-          date: data.date || date,
+          date: data.date || formattedDate || new Date().toISOString().split('T')[0],
           newUsers: data.newUsers || 0,
           activeUsers: data.activeUsers || 0,
           totalViews: data.totalViews || 0,
@@ -433,11 +435,11 @@ export default {
           newComments: data.newComments || 0,
           vipOrders: data.vipOrders || 0,
           vipRevenue: data.vipRevenue || 0,
-          newFeedback: data.newFeedback || 0
+          newFeedback: data.newFeedback || data.feedbackCount || 0
         })
       } catch (error) {
         console.error('获取每日统计数据失败:', error)
-        ElMessage.error('获取每日统计数据失败')
+        ElMessage.error(`获取每日统计数据失败: ${error.response?.status === 404 ? '服务不可用' : error.message}`)
       }
     }
     
@@ -457,14 +459,28 @@ export default {
         const response = await statisticsApi.getUserBehaviorAnalysis()
         const data = response.data?.data || response.data
         
-        Object.assign(userBehavior, {
-          behaviorDistribution: data.behaviorDistribution || {},
-          userEngagement: data.userEngagement || {},
-          vipAnalysis: data.vipAnalysis || {}
-        })
+        // 处理后端返回的用户行为数据格式
+        if (Array.isArray(data)) {
+          // 如果返回的是数组格式，转换为对象格式
+          const behaviorMap = {}
+          data.forEach(item => {
+            behaviorMap[item.behaviorType || item.type] = item.count || item.value || 0
+          })
+          Object.assign(userBehavior, {
+            behaviorDistribution: behaviorMap,
+            userEngagement: {},
+            vipAnalysis: {}
+          })
+        } else {
+          Object.assign(userBehavior, {
+            behaviorDistribution: data.behaviorDistribution || data || {},
+            userEngagement: data.userEngagement || {},
+            vipAnalysis: data.vipAnalysis || {}
+          })
+        }
       } catch (error) {
         console.error('获取用户行为数据失败:', error)
-        ElMessage.error('获取用户行为数据失败')
+        ElMessage.error(`获取用户行为数据失败: ${error.response?.status === 404 ? '服务不可用' : error.message}`)
       }
     }
     

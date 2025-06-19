@@ -96,4 +96,51 @@ export function deleteUser(userId) {
     url: `/api/users/${userId}`,
     method: 'delete'
   })
+}
+
+// 设置用户VIP (JSON方式)
+export function setUserVip(userId, vipData) {
+  return request({
+    url: `/api/users/${userId}/vip`,
+    method: 'put',
+    data: vipData
+  })
+}
+
+// 设置用户VIP (参数方式)
+export function setUserVipParams(userId, vipType, vipExpireTime) {
+  return request({
+    url: `/api/users/${userId}/vip/params`,
+    method: 'put',
+    params: {
+      vipType,
+      vipExpireTime
+    }
+  })
+}
+
+// 取消用户VIP
+export function cancelUserVip(userId) {
+  return request({
+    url: `/api/users/${userId}/vip`,
+    method: 'delete'
+  })
+}
+
+// 获取用户登录日志
+export function getUserLoginLogs(userId, params = {}) {
+  const { page = 0, size = 10, sort = 'loginTime', direction = 'desc' } = params
+  return request({
+    url: `/api/users/${userId}/login-logs`,
+    method: 'get',
+    params: { page, size, sort, direction }
+  })
+}
+
+// 获取用户活动统计
+export function getUserActivity(userId) {
+  return request({
+    url: `/api/users/${userId}/activity`,
+    method: 'get'
+  })
 } 

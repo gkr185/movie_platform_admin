@@ -1,5 +1,74 @@
 <template>
   <div class="permission-management">
+    <!-- 权限提示卡片 -->
+    <el-card class="permission-tips-card">
+      <template #header>
+        <div class="card-header">
+          <span>系统权限提示</span>
+          <el-button type="text" @click="showPermissionTips = !showPermissionTips">
+            {{ showPermissionTips ? '收起' : '展开' }}
+          </el-button>
+        </div>
+      </template>
+      
+      <el-collapse-transition>
+        <div v-show="showPermissionTips" class="permission-tips">
+          <el-alert
+            title="权限码使用说明"
+            type="info"
+            :closable="false"
+            class="mb-4"
+          >
+            <p>以下是系统中实际使用的权限码，请确保这些权限已正确注册：</p>
+          </el-alert>
+          
+          <el-row :gutter="20">
+            <el-col :span="12" v-for="module in systemPermissions" :key="module.name">
+              <el-card class="module-card" shadow="hover">
+                <template #header>
+                  <div class="module-header">
+                    <el-icon>
+                      <component :is="module.icon" />
+                    </el-icon>
+                    <span class="module-name">{{ module.name }}</span>
+                  </div>
+                </template>
+                
+                <div class="permission-list">
+                  <el-tag 
+                    v-for="permission in module.permissions" 
+                    :key="permission.code"
+                    class="permission-tag"
+                    :type="isPermissionRegistered(permission.code) ? 'success' : 'danger'"
+                    size="small"
+                  >
+                    <el-tooltip :content="permission.description" placement="top">
+                      <span>{{ permission.code }}</span>
+                    </el-tooltip>
+                  </el-tag>
+                </div>
+              </el-card>
+            </el-col>
+          </el-row>
+          
+          <div class="tips-footer">
+            <el-alert
+              title="快速操作"
+              type="success"
+              :closable="false"
+              class="mt-4"
+            >
+              <p>点击下方按钮快速注册所有系统权限：</p>
+              <el-button type="primary" size="small" @click="registerSystemPermissions">
+                <el-icon><Magic /></el-icon>
+                一键注册系统权限
+              </el-button>
+            </el-alert>
+          </div>
+        </div>
+      </el-collapse-transition>
+    </el-card>
+
     <el-card class="box-card">
       <template #header>
         <div class="card-header">
@@ -150,7 +219,11 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Upload, Edit, Delete } from '@element-plus/icons-vue'
+import { 
+  Plus, Upload, Edit, Delete, Magic,
+  Platform, User, Lock, VideoPlay, Grid, Picture, Document, 
+  CreditCard, Setting
+} from '@element-plus/icons-vue'
 import { 
   getAllPermissions, 
   registerPermission, 
@@ -165,6 +238,93 @@ const loading = ref(false)
 const allPermissions = ref([])
 const selectedPermission = ref(null)
 const parsedPermissions = ref([])
+const showPermissionTips = ref(true)
+
+// 系统权限定义（来自AdminLayout.vue）
+const systemPermissions = ref([
+  {
+    name: '仪表盘',
+    icon: 'Platform',
+    permissions: [
+      { code: 'dashboard:view', description: '查看仪表盘' }
+    ]
+  },
+  {
+    name: '用户管理',
+    icon: 'User',
+    permissions: [
+      { code: 'user:view', description: '查看用户列表' },
+      { code: 'user:manage', description: '管理用户信息' },
+      { code: 'user:vip', description: 'VIP用户管理' }
+    ]
+  },
+  {
+    name: '权限管理',
+    icon: 'Lock',
+    permissions: [
+      { code: 'rbac:view', description: '查看权限信息' },
+      { code: 'rbac:manage', description: '管理权限' },
+      { code: 'rbac:role', description: '角色管理' },
+      { code: 'rbac:permission', description: '权限管理' },
+      { code: 'rbac:assign', description: '权限分配' }
+    ]
+  },
+  {
+    name: '电影管理',
+    icon: 'VideoPlay',
+    permissions: [
+      { code: 'movie:view', description: '查看电影列表' },
+      { code: 'movie:manage', description: '管理电影' },
+      { code: 'movie:upload', description: '上传电影' },
+      { code: 'movie:review', description: '影评管理' }
+    ]
+  },
+  {
+    name: '分类管理',
+    icon: 'Grid',
+    permissions: [
+      { code: 'category:manage', description: '分类管理' }
+    ]
+  },
+  {
+    name: '广告管理',
+    icon: 'Picture',
+    permissions: [
+      { code: 'ad:view', description: '查看广告列表' },
+      { code: 'ad:manage', description: '管理广告' },
+      { code: 'ad:create', description: '创建广告' }
+    ]
+  },
+  {
+    name: '新闻资讯',
+    icon: 'Document',
+    permissions: [
+      { code: 'news:view', description: '查看新闻列表' },
+      { code: 'news:create', description: '发布新闻' },
+      { code: 'news:update', description: '更新新闻' },
+      { code: 'news:delete', description: '删除新闻' },
+      { code: 'news:feedback', description: '用户反馈管理' },
+      { code: 'news:manage', description: '新闻管理' }
+    ]
+  },
+  {
+    name: 'VIP支付',
+    icon: 'CreditCard',
+    permissions: [
+      { code: 'payment:view', description: '查看支付信息' },
+      { code: 'vip:manage', description: 'VIP管理' },
+      { code: 'vip:view', description: '查看VIP订单' },
+      { code: 'vip:audit', description: 'VIP套餐审核' }
+    ]
+  },
+  {
+    name: '系统设置',
+    icon: 'Setting',
+    permissions: [
+      { code: 'system:setting', description: '系统设置' }
+    ]
+  }
+])
 
 // 权限表单
 const permissionForm = reactive({
@@ -444,6 +604,63 @@ const handleSubmitBatch = async () => {
   }
 }
 
+// 检查权限是否已注册
+const isPermissionRegistered = (permissionCode) => {
+  return allPermissions.value.some(permission => permission.code === permissionCode)
+}
+
+// 一键注册系统权限
+const registerSystemPermissions = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要注册所有系统权限吗？已存在的权限将被跳过。',
+      '一键注册系统权限',
+      {
+        confirmButtonText: '确定注册',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    )
+
+    // 收集所有未注册的权限
+    const unregisteredPermissions = []
+    
+    systemPermissions.value.forEach(module => {
+      module.permissions.forEach(permission => {
+        if (!isPermissionRegistered(permission.code)) {
+          unregisteredPermissions.push({
+            name: permission.description,
+            code: permission.code,
+            description: permission.description,
+            parentId: 0
+          })
+        }
+      })
+    })
+
+    if (unregisteredPermissions.length === 0) {
+      ElMessage.info('所有系统权限已注册，无需重复注册')
+      return
+    }
+
+    // 批量注册
+    const response = await batchRegisterPermissions(unregisteredPermissions)
+    
+    if (response.code === 200) {
+      ElMessage.success(`成功注册 ${unregisteredPermissions.length} 个系统权限`)
+      fetchPermissions() // 刷新列表
+    } else {
+      ElMessage.error(response.message || '系统权限注册失败')
+    }
+
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('注册系统权限失败:', error)
+      ElMessage.error('注册系统权限失败')
+    }
+  }
+}
+
 // 组件挂载时获取数据
 onMounted(() => {
   fetchPermissions()
@@ -471,5 +688,77 @@ onMounted(() => {
 
 .mb-4 {
   margin-bottom: 16px;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+/* 权限提示卡片样式 */
+.permission-tips-card {
+  margin-bottom: 20px;
+}
+
+.permission-tips {
+  padding: 10px 0;
+}
+
+.module-card {
+  margin-bottom: 16px;
+  height: 100%;
+}
+
+.module-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.module-name {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.permission-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.permission-tag {
+  margin-bottom: 8px;
+  cursor: help;
+}
+
+.tips-footer {
+  text-align: center;
+}
+
+/* 权限状态颜色 */
+.permission-tag.el-tag--success {
+  --el-tag-bg-color: #f0f9ff;
+  --el-tag-border-color: #67c23a;
+  --el-tag-text-color: #67c23a;
+}
+
+.permission-tag.el-tag--danger {
+  --el-tag-bg-color: #fef0f0;
+  --el-tag-border-color: #f56c6c;
+  --el-tag-text-color: #f56c6c;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .permission-tips .el-col {
+    margin-bottom: 16px;
+  }
+  
+  .module-card {
+    margin-bottom: 12px;
+  }
+  
+  .permission-list {
+    gap: 6px;
+  }
 }
 </style> 
