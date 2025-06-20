@@ -465,6 +465,8 @@ import {
   likeComment,
   reportComment
 } from '@/api/comment'
+import { getUserInfo } from '@/api/user'
+import { getMovieDetail } from '@/api/movie'
 
 // DislikeOutlined 图标组件
 const DislikeOutlined = {
@@ -523,6 +525,165 @@ export default {
       total: 0
     })
 
+    // 批量获取用户信息和电影信息并合并到评论数据中
+    const enrichCommentsWithUserInfo = async (comments) => {
+      if (!comments || comments.length === 0) {
+        return []
+      }
+      
+      try {
+        // 收集所有唯一的用户ID和电影ID
+        const userIds = [...new Set(comments.map(comment => comment.userId).filter(id => id))]
+        const movieIds = [...new Set(comments.map(comment => comment.movieId).filter(id => id))]
+        
+        // 批量获取用户信息
+        const userInfoPromises = userIds.map(async (userId) => {
+          try {
+            const userResponse = await getUserInfo(userId)
+            // 处理用户信息响应格式
+            let userInfo = null
+            if (userResponse) {
+              if (userResponse.code === 200 && userResponse.data) {
+                userInfo = userResponse.data
+              } else if (userResponse.data) {
+                userInfo = userResponse.data
+              } else if (userResponse.id) {
+                userInfo = userResponse
+              }
+            }
+            
+            return {
+              userId,
+              username: userInfo?.username || userInfo?.name || '匿名用户',
+              userAvatar: userInfo?.avatar || userInfo?.avatarUrl || '',
+              userEmail: userInfo?.email || '',
+              userVipType: userInfo?.vipType || 0
+            }
+          } catch (error) {
+            console.warn(`获取用户${userId}信息失败:`, error)
+            return {
+              userId,
+              username: '匿名用户',
+              userAvatar: '',
+              userEmail: '',
+              userVipType: 0
+            }
+          }
+        })
+        
+        // 批量获取电影信息
+        const movieInfoPromises = movieIds.map(async (movieId) => {
+          try {
+            const movieResponse = await getMovieDetail(movieId)
+            // 处理电影信息响应格式
+            let movieInfo = null
+            if (movieResponse) {
+              if (movieResponse.code === 200 && movieResponse.data) {
+                movieInfo = movieResponse.data
+              } else if (movieResponse.data) {
+                movieInfo = movieResponse.data
+              } else if (movieResponse.id) {
+                movieInfo = movieResponse
+              }
+            }
+            
+            return {
+              movieId,
+              movieTitle: movieInfo?.title || movieInfo?.name || '未知电影',
+              moviePoster: movieInfo?.poster || movieInfo?.posterUrl || movieInfo?.image || '',
+              movieDescription: movieInfo?.description || movieInfo?.summary || '',
+              movieRating: movieInfo?.rating || 0,
+              movieYear: movieInfo?.year || movieInfo?.releaseYear || ''
+            }
+          } catch (error) {
+            console.warn(`获取电影${movieId}信息失败:`, error)
+            return {
+              movieId,
+              movieTitle: '未知电影',
+              moviePoster: '',
+              movieDescription: '',
+              movieRating: 0,
+              movieYear: ''
+            }
+          }
+        })
+        
+        // 等待所有请求完成
+        const [userInfoList, movieInfoList] = await Promise.all([
+          Promise.all(userInfoPromises),
+          Promise.all(movieInfoPromises)
+        ])
+        
+        // 创建用户信息映射
+        const userInfoMap = new Map()
+        userInfoList.forEach(userInfo => {
+          userInfoMap.set(userInfo.userId, userInfo)
+        })
+        
+        // 创建电影信息映射
+        const movieInfoMap = new Map()
+        movieInfoList.forEach(movieInfo => {
+          movieInfoMap.set(movieInfo.movieId, movieInfo)
+        })
+        
+        // 将用户信息和电影信息合并到评论数据中
+        const enrichedComments = comments.map(comment => {
+          const userInfo = userInfoMap.get(comment.userId) || {
+            userId: comment.userId,
+            username: '匿名用户',
+            userAvatar: '',
+            userEmail: '',
+            userVipType: 0
+          }
+          
+          const movieInfo = movieInfoMap.get(comment.movieId) || {
+            movieId: comment.movieId,
+            movieTitle: '未知电影',
+            moviePoster: '',
+            movieDescription: '',
+            movieRating: 0,
+            movieYear: ''
+          }
+          
+          return {
+            ...comment,
+            // 用户信息
+            username: userInfo.username,
+            userAvatar: userInfo.userAvatar,
+            userEmail: userInfo.userEmail,
+            userVipType: userInfo.userVipType,
+            // 电影信息
+            movieTitle: movieInfo.movieTitle,
+            moviePoster: movieInfo.moviePoster,
+            movieDescription: movieInfo.movieDescription,
+            movieRating: movieInfo.movieRating,
+            movieYear: movieInfo.movieYear
+          }
+        })
+        
+        console.log('信息合并完成，评论数量:', enrichedComments.length, '用户数量:', userIds.length, '电影数量:', movieIds.length)
+        return enrichedComments
+        
+      } catch (error) {
+        console.error('批量获取信息失败:', error)
+        // 返回原始评论数据，但添加默认信息
+        return comments.map(comment => ({
+          ...comment,
+          // 默认用户信息
+          username: '匿名用户',
+          userAvatar: '',
+          userEmail: '',
+          userVipType: 0,
+          // 默认电影信息
+          movieTitle: '未知电影',
+          moviePoster: '',
+          movieDescription: '',
+          movieRating: 0,
+          movieYear: ''
+        }))
+      }
+    }
+
     // 获取评论列表
     const fetchCommentList = async () => {
       try {
@@ -577,8 +738,11 @@ export default {
               pagination.total = 0
             }
             
+            // 批量获取用户信息并合并到评论数据中
+            const commentsWithUserInfo = await enrichCommentsWithUserInfo(comments)
+            
             // 构建树状结构
-            commentList.value = buildCommentTree(comments)
+            commentList.value = buildCommentTree(commentsWithUserInfo)
           } else {
             commentList.value = []
             pagination.total = 0
