@@ -372,7 +372,7 @@ export default {
 }
 
 .main-content {
-  background-color: #f0f2f5;
+  background: linear-gradient(135deg, #bcdfe7 0%, #ecc2e5 100%);
   padding: 20px;
   overflow-y: auto;
 }

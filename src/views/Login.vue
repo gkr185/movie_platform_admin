@@ -143,9 +143,15 @@ export default {
     }
     
     // 检查是否已登录
-    onMounted(() => {
-      if (authStore.isLoggedIn) {
-        router.push('/dashboard')
+    onMounted(async () => {
+      try {
+        // 使用Session机制检查登录状态
+        const isLoggedIn = await authStore.checkLoginStatus()
+        if (isLoggedIn) {
+          router.push('/dashboard')
+        }
+      } catch (error) {
+        console.error('检查登录状态失败:', error)
       }
     })
     

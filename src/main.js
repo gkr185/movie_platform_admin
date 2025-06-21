@@ -46,4 +46,16 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
 
-app.use(store).use(router).use(ElementPlus).use(pinia).mount('#app')
+app.use(store).use(router).use(ElementPlus).use(pinia)
+
+// 在应用启动时初始化用户状态（Session机制）
+import { useAuthStore } from '@/stores/auth'
+
+// 等待应用挂载后再初始化状态
+app.mount('#app')
+
+// 初始化用户状态
+const authStore = useAuthStore()
+authStore.initUserState().catch(error => {
+  console.error('初始化用户状态失败:', error)
+})

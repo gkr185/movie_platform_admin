@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { loginApi, getUserInfo } from '@/api/user'
+import { loginApi, logoutApi, getCurrentUser, checkLoginStatus } from '@/api/user'
 import { getUserRoles, getUserPermissions } from '@/api/rbac'
 
 export const useAuthStore = defineStore('auth', {
@@ -12,8 +12,8 @@ export const useAuthStore = defineStore('auth', {
     permissions: [],
     // 登录状态
     isLoggedIn: false,
-    // token
-    token: localStorage.getItem('token') || null
+    // Session ID (如果后端返回)
+    sessionId: null
   }),
 
   getters: {
@@ -65,30 +65,95 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
+    // 检查登录状态
+    async checkLoginStatus() {
+      try {
+        const response = await checkLoginStatus()
+        const isLoggedIn = response.data
+        this.isLoggedIn = isLoggedIn
+        
+        if (isLoggedIn) {
+          // 如果已登录，获取当前用户信息
+          await this.getCurrentUserInfo()
+        } else {
+          // 如果未登录，清除状态
+          this.clearUserState()
+        }
+        
+        return isLoggedIn
+      } catch (error) {
+        console.error('检查登录状态失败:', error)
+        this.clearUserState()
+        return false
+      }
+    },
+
+    // 获取当前用户信息
+    async getCurrentUserInfo() {
+      try {
+        const response = await getCurrentUser()
+        const userInfo = response.data
+        console.log('获取当前用户信息:', userInfo)
+        
+        this.user = userInfo
+        this.isLoggedIn = true
+        
+        // 保存用户信息到localStorage
+        localStorage.setItem('userInfo', JSON.stringify(userInfo))
+        
+        // 获取用户角色和权限
+        if (userInfo.id) {
+          await this.fetchUserRolesAndPermissions(userInfo.id)
+        }
+        
+        return response
+      } catch (error) {
+        console.error('获取当前用户信息失败:', error)
+        this.clearUserState()
+        throw error
+      }
+    },
+
     // 登录
     async login(loginForm) {
       try {
         const response = await loginApi(loginForm)
         const { data } = response
         
-        // 保存用户信息
-        this.user = data
-        this.isLoggedIn = true
+        console.log('登录响应:', response)
         
-        // 保存用户信息到localStorage
-        localStorage.setItem('userInfo', JSON.stringify(data))
-        
-        // 如果后端返回token，保存token
-        if (data.token) {
-          this.token = data.token
-          localStorage.setItem('token', data.token)
+        // Session机制下登录成功后的处理
+        if (data) {
+          // 保存Session ID（如果返回）
+          if (data.sessionId) {
+            this.sessionId = data.sessionId
+          }
+          
+          // 如果登录响应包含用户信息
+          if (data.user) {
+            this.user = data.user
+            this.isLoggedIn = true
+            localStorage.setItem('userInfo', JSON.stringify(data.user))
+            
+            // 获取用户角色和权限
+            await this.fetchUserRolesAndPermissions(data.user.id)
+          } else if (data.id) {
+            // 如果只返回基本信息，设置用户状态
+            this.user = data
+            this.isLoggedIn = true
+            localStorage.setItem('userInfo', JSON.stringify(data))
+            
+            // 获取用户角色和权限
+            await this.fetchUserRolesAndPermissions(data.id)
+          } else {
+            // 如果没有用户信息，主动获取
+            await this.getCurrentUserInfo()
+          }
         }
-        
-        // 获取用户角色和权限
-        await this.fetchUserRolesAndPermissions(data.id)
         
         return Promise.resolve(response)
       } catch (error) {
+        this.clearUserState()
         return Promise.reject(error)
       }
     },
@@ -118,35 +183,47 @@ export const useAuthStore = defineStore('auth', {
     },
 
     // 退出登录
-    logout() {
+    async logout() {
+      try {
+        // 调用后端登出接口
+        await logoutApi()
+      } catch (error) {
+        console.error('后端登出失败:', error)
+      } finally {
+        // 无论后端是否成功，都要清除前端状态
+        this.clearUserState()
+        
+        // 跳转到登录页
+        window.location.href = '/login'
+      }
+    },
+
+    // 清除用户状态
+    clearUserState() {
       this.user = null
       this.roles = []
       this.permissions = []
       this.isLoggedIn = false
-      this.token = null
+      this.sessionId = null
       
       // 清除localStorage
-      localStorage.removeItem('token')
       localStorage.removeItem('userInfo')
       localStorage.removeItem('userRoles')
       localStorage.removeItem('userPermissions')
-      
-      // 跳转到登录页
-      window.location.href = '/login'
     },
 
-    // 从localStorage恢复用户状态
+    // 从localStorage恢复用户状态（Session机制下不推荐）
     restoreUserState() {
-      const token = localStorage.getItem('token')
+      // Session机制下，推荐使用checkLoginStatus而不是从localStorage恢复
+      // 保留此方法仅用于兼容性
       const userInfo = localStorage.getItem('userInfo')
       const userRoles = localStorage.getItem('userRoles')
       const userPermissions = localStorage.getItem('userPermissions')
       
-      if (token && userInfo) {
+      if (userInfo) {
         try {
-          this.token = token
           this.user = JSON.parse(userInfo)
-          this.isLoggedIn = true
+          // 注意：这里不设置isLoggedIn，应该通过checkLoginStatus确认
           
           if (userRoles) {
             this.roles = JSON.parse(userRoles)
@@ -157,18 +234,28 @@ export const useAuthStore = defineStore('auth', {
           }
         } catch (error) {
           console.error('恢复用户状态失败:', error)
-          this.logout()
+          this.clearUserState()
         }
+      }
+    },
+
+    // 初始化用户状态
+    async initUserState() {
+      try {
+        // 首先检查登录状态
+        const isLoggedIn = await this.checkLoginStatus()
+        return isLoggedIn
+      } catch (error) {
+        console.error('初始化用户状态失败:', error)
+        return false
       }
     },
 
     // 更新用户信息
     async updateUserInfo() {
-      if (this.user?.id) {
+      if (this.isLoggedIn) {
         try {
-          const response = await getUserInfo(this.user.id)
-          this.user = response.data
-          localStorage.setItem('userInfo', JSON.stringify(this.user))
+          await this.getCurrentUserInfo()
         } catch (error) {
           console.error('更新用户信息失败:', error)
         }

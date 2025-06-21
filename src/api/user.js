@@ -16,7 +16,31 @@ export function loginApi(data) {
   })
 }
 
-// 获取用户信息
+// 用户登出
+export function logoutApi() {
+  return request({
+    url: '/api/users/logout',
+    method: 'post'
+  })
+}
+
+// 获取当前用户信息
+export function getCurrentUser() {
+  return request({
+    url: '/api/users/current',
+    method: 'get'
+  })
+}
+
+// 检查登录状态
+export function checkLoginStatus() {
+  return request({
+    url: '/api/users/login-status',
+    method: 'get'
+  })
+}
+
+// 获取用户信息（通过ID）
 export function getUserInfo(userId) {
   if (USE_MOCK) {
     return mockGetUserInfo(userId)
@@ -72,16 +96,25 @@ export function registerApi(data) {
   })
 }
 
-// 修改密码
-export function updatePassword(userId, oldPassword, newPassword) {
+// 修改密码 - 适配Session机制，不需要userId
+export function updatePassword(oldPassword, newPassword) {
   return request({
-    url: `/api/users/${userId}/password`,
+    url: '/api/users/password',
     method: 'put',
     params: { oldPassword, newPassword }
   })
 }
 
-// 更新用户信息
+// 更新个人资料 - 适配Session机制
+export function updateProfile(data) {
+  return request({
+    url: '/api/users/profile',
+    method: 'put',
+    data
+  })
+}
+
+// 更新用户信息（管理员功能，仍需userId）
 export function updateUser(userId, data) {
   return request({
     url: `/api/users/${userId}`,
@@ -127,7 +160,7 @@ export function cancelUserVip(userId) {
   })
 }
 
-// 获取用户登录日志
+// 获取用户登录日志（如果后端支持）
 export function getUserLoginLogs(userId, params = {}) {
   const { page = 0, size = 10, sort = 'loginTime', direction = 'desc' } = params
   return request({
@@ -137,7 +170,7 @@ export function getUserLoginLogs(userId, params = {}) {
   })
 }
 
-// 获取用户活动统计
+// 获取用户活动统计（如果后端支持）
 export function getUserActivity(userId) {
   return request({
     url: `/api/users/${userId}/activity`,

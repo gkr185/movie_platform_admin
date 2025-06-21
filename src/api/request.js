@@ -3,17 +3,21 @@ import { ElMessage } from 'element-plus'
 
 // 创建axios实例
 const service = axios.create({
-  timeout: 10000, // 请求超时时间
-  withCredentials: true // 跨域请求时发送cookies
+  timeout: 15000, // 增加超时时间以匹配API文档
+  withCredentials: true, // 重要：支持Cookie，用于Session机制
+  credentials: 'include' // 确保跨域请求携带Cookie
 })
 
 // 请求拦截器
 service.interceptors.request.use(
   config => {
-    // 从localStorage获取token
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`
+    // Session机制不需要手动添加Token，Cookie会自动携带
+    // 确保所有请求都携带Cookie
+    config.withCredentials = true
+    
+    // 添加Content-Type头（如果没有设置）
+    if (!config.headers['Content-Type']) {
+      config.headers['Content-Type'] = 'application/json'
     }
     
     // 开发环境使用代理，生产环境直接请求对应服务
@@ -54,13 +58,40 @@ service.interceptors.request.use(
   }
 )
 
-// 响应拦截器 - 简化版本
+// 响应拦截器 - 适配Session机制
 service.interceptors.response.use(
   response => {
     console.log('收到响应:', response.status, response.config.url, response.data)
     
-    // 直接返回响应数据，不做过多处理
-    return response.data
+    const res = response.data
+    
+    // 如果响应中包含错误码，进行相应处理
+    if (res && res.code && res.code !== 200) {
+      // Session失效或未登录
+      if (res.code === 401) {
+        ElMessage.error('登录已过期，请重新登录')
+        // 清除本地存储并跳转登录页
+        localStorage.clear()
+        window.location.href = '/login'
+        throw new Error('登录已过期，请重新登录')
+      }
+      
+      // 处理用户模块特定错误码
+      const errorMessages = {
+        1001: '用户名已存在',
+        1002: '邮箱已被注册',
+        1003: '用户不存在',
+        1004: '密码错误',
+        1006: '用户名或密码错误',
+        1007: '原密码错误'
+      }
+      
+      const errorMessage = errorMessages[res.code] || res.message || '请求失败'
+      throw new Error(errorMessage)
+    }
+    
+    // 直接返回响应数据
+    return res || response.data
   },
   error => {
     console.error('响应错误:', error)
@@ -77,7 +108,12 @@ service.interceptors.response.use(
           message = '请求参数错误'
           break
         case 401:
-          message = '未授权，请重新登录'
+          message = '登录已过期，请重新登录'
+          // Session过期，清除本地状态并跳转
+          localStorage.clear()
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 1500)
           break
         case 403:
           message = '权限不足'
