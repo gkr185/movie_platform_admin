@@ -95,9 +95,14 @@
             v-model="categoryForm.parentId"
             :data="parentCategoryOptions"
             :props="{ children: 'children', label: 'name', value: 'id' }"
+            node-key="id"
             check-strictly
+            :render-after-expand="false"
             placeholder="请选择父分类（可选）"
             clearable
+            filterable
+            :filter-node-method="filterParentCategory"
+            style="width: 100%"
           />
         </el-form-item>
         <el-form-item label="排序权重" prop="sortOrder">
@@ -170,7 +175,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Film, Edit, Delete } from '@element-plus/icons-vue'
 import {
@@ -238,36 +243,89 @@ const categoryTree = computed(() => {
 
 // 计算属性：父分类选项（用于下拉选择）
 const parentCategoryOptions = computed(() => {
-  const options = [{ id: 0, name: '根分类', children: [] }]
-  const tree = buildTree(allCategories.value.filter(cat => cat.id !== categoryForm.id))
-  options[0].children = tree
-  return options
+  // 如果没有分类数据，返回空选项
+  if (!allCategories.value || allCategories.value.length === 0) {
+    return [{ id: 0, name: '根分类', children: [] }]
+  }
+  
+  // 获取需要排除的分类ID集合（当前分类及其所有子分类）
+  const excludeIds = new Set()
+  if (categoryForm.id) {
+    excludeIds.add(categoryForm.id)
+    // 递归找出所有子分类ID
+    const findChildrenIds = (parentId) => {
+      allCategories.value.forEach(cat => {
+        if (cat.parentId === parentId) {
+          excludeIds.add(cat.id)
+          findChildrenIds(cat.id) // 递归查找子分类
+        }
+      })
+    }
+    findChildrenIds(categoryForm.id)
+  }
+  
+  // 过滤掉需要排除的分类
+  const filteredCategories = allCategories.value.filter(cat => !excludeIds.has(cat.id))
+  
+  // 构建树形结构
+  const tree = buildTree(filteredCategories)
+  
+  // 返回包含根分类选项的完整选项列表
+  return [
+    { 
+      id: 0, 
+      name: '根分类', 
+      children: tree,
+      disabled: false
+    }
+  ]
 })
 
-// 构建分类树
+// 构建分类树（优化版本）
 const buildTree = (categories) => {
+  if (!categories || categories.length === 0) return []
+  
   const tree = []
-  const categoryMap = {}
+  const categoryMap = new Map()
 
   // 先创建所有节点的映射
   categories.forEach(category => {
-    categoryMap[category.id] = {
-      ...category,
-      children: []
-    }
+    categoryMap.set(category.id, {
+      id: category.id,
+      name: category.name,
+      parentId: category.parentId,
+      description: category.description,
+      sortOrder: category.sortOrder,
+      status: category.status,
+      children: [],
+      disabled: false // 确保所有节点都可选
+    })
   })
 
   // 构建树结构
   categories.forEach(category => {
+    const categoryNode = categoryMap.get(category.id)
     if (category.parentId === 0) {
       // 根节点
-      tree.push(categoryMap[category.id])
-    } else if (categoryMap[category.parentId]) {
+      tree.push(categoryNode)
+    } else if (categoryMap.has(category.parentId)) {
       // 子节点
-      categoryMap[category.parentId].children.push(categoryMap[category.id])
+      const parentNode = categoryMap.get(category.parentId)
+      parentNode.children.push(categoryNode)
     }
   })
 
+  // 按排序权重排序
+  const sortTree = (nodes) => {
+    nodes.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+    nodes.forEach(node => {
+      if (node.children && node.children.length > 0) {
+        sortTree(node.children)
+      }
+    })
+  }
+  
+  sortTree(tree)
   return tree
 }
 
@@ -326,15 +384,29 @@ const handleAddChild = (parent) => {
 
 // 编辑分类
 const handleEditCategory = (category) => {
+  // 先重置表单
+  resetForm()
+  
+  // 设置表单数据
   categoryForm.id = category.id
   categoryForm.name = category.name
   categoryForm.description = category.description
-  categoryForm.parentId = category.parentId
+  categoryForm.parentId = category.parentId || 0  // 确保有默认值
   categoryForm.sortOrder = category.sortOrder
   categoryForm.status = category.status
+  
+  // 设置对话框状态
   categoryDialog.title = '编辑分类'
   categoryDialog.isEdit = true
   categoryDialog.visible = true
+  
+  // 下一帧更新，确保表单组件已渲染
+  nextTick(() => {
+    // 清除表单验证状态
+    if (categoryFormRef.value) {
+      categoryFormRef.value.clearValidate()
+    }
+  })
 }
 
 // 重置表单
@@ -345,6 +417,12 @@ const resetForm = () => {
   categoryForm.parentId = 0
   categoryForm.sortOrder = 1
   categoryForm.status = 1
+}
+
+// 父分类树形选择器过滤方法
+const filterParentCategory = (value, data) => {
+  if (!value) return true
+  return data.name.toLowerCase().includes(value.toLowerCase())
 }
 
 // 提交分类表单
