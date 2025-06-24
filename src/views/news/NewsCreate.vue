@@ -449,7 +449,7 @@ export default {
 
     const handleContentImageUploadSuccess = (response) => {
       if (response.success) {
-        const imageMarkdown = `\n![图片](${response.fileUrl})\n`
+        const imageMarkdown = `\n<img src="${response.fileUrl}" alt="图片" />\n`
         form.content += imageMarkdown
         ElMessage.success('图片上传成功，已插入到内容中')
       }
