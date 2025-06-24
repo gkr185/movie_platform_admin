@@ -302,6 +302,7 @@ import { Plus, Upload } from '@element-plus/icons-vue'
 import FileUpload from '@/components/FileUpload.vue'
 import { createMovie, updateMovie } from '@/api/movie'
 import { getAllCategories } from '@/api/category'
+import { getCompleteTagIds, getAutoAddedParentInfo } from '@/utils/categoryUtils'
 
 export default {
   name: 'MovieUpload',
@@ -398,12 +399,48 @@ export default {
       selectedCategories.value = selectedCategories.value.filter(cat => cat.id !== categoryId)
     }
 
+    // 分类确认处理
     const handleCategoryConfirm = () => {
+      // 使用工具函数获取包含父分类的完整分类ID列表
+      const completeTagIds = getCompleteTagIds(tempSelectedCategories.value, allCategories.value)
+      
+      // 使用工具函数获取自动添加的父分类信息
+      const autoAddedInfo = getAutoAddedParentInfo(tempSelectedCategories.value, completeTagIds, allCategories.value)
+      
+      if (autoAddedInfo.names.length > 0) {
+        ElMessage.info(`系统已自动添加父分类: ${autoAddedInfo.names.join(', ')}`)
+      }
+      
       selectedCategories.value = allCategories.value.filter(cat => 
-        tempSelectedCategories.value.includes(cat.id)
+        completeTagIds.includes(cat.id)
       )
       showCategoryDialog.value = false
     }
+
+    // 移除原有的工具函数，改用导入的工具函数
+    // const getCompleteTagIds = (selectedIds) => {
+    //   const result = new Set()
+      
+    //   selectedIds.forEach(categoryId => {
+    //     // 添加当前分类
+    //     result.add(categoryId)
+        
+    //     // 递归添加所有父分类
+    //     addParentCategories(categoryId, result)
+    //   })
+      
+    //   return Array.from(result)
+    // }
+
+    // const addParentCategories = (categoryId, resultSet) => {
+    //   const category = allCategories.value.find(cat => cat.id === categoryId)
+    //   if (category && category.parentId && category.parentId !== 0) {
+    //     // 添加父分类
+    //     resultSet.add(category.parentId)
+    //     // 递归添加父分类的父分类
+    //     addParentCategories(category.parentId, resultSet)
+    //   }
+    // }
 
     // 表单提交
     const handleSubmit = async () => {

@@ -578,6 +578,7 @@ import {
   updateMovieCategoryAssociations,
   removeMovieCategoryAssociation
 } from '@/api/category'
+import { getCompleteTagIds, getAutoAddedParentInfo, buildCategoryTree } from '@/utils/categoryUtils'
 
 // 响应式数据
 const loading = ref(false)
@@ -667,31 +668,31 @@ const categoriesDialog = reactive({
 
 // 计算属性：分类树
 const categoryTree = computed(() => {
-  return buildTree(allCategories.value)
+  return buildCategoryTree(allCategories.value)
 })
 
-// 构建分类树
-const buildTree = (categories) => {
-  const tree = []
-  const categoryMap = {}
+// 构建分类树 - 改为使用工具函数
+// const buildTree = (categories) => {
+//   const tree = []
+//   const categoryMap = {}
 
-  categories.forEach(category => {
-    categoryMap[category.id] = {
-      ...category,
-      children: []
-    }
-  })
+//   categories.forEach(category => {
+//     categoryMap[category.id] = {
+//       ...category,
+//       children: []
+//     }
+//   })
 
-  categories.forEach(category => {
-    if (category.parentId === 0) {
-      tree.push(categoryMap[category.id])
-    } else if (categoryMap[category.parentId]) {
-      categoryMap[category.parentId].children.push(categoryMap[category.id])
-    }
-  })
+//   categories.forEach(category => {
+//     if (category.parentId === 0) {
+//       tree.push(categoryMap[category.id])
+//     } else if (categoryMap[category.parentId]) {
+//       categoryMap[category.parentId].children.push(categoryMap[category.id])
+//     }
+//   })
 
-  return tree
-}
+//   return tree
+// }
 
 // 获取电影列表
 const fetchMovies = async () => {
@@ -1047,11 +1048,21 @@ const loadMovieCategories = async (movieId) => {
 // 添加分类标签
 const handleAddCategories = async () => {
   const checkedNodes = categoryTreeRef.value.getCheckedNodes()
-  const categoryIds = checkedNodes.map(node => node.id)
+  const selectedCategoryIds = checkedNodes.map(node => node.id)
   
-  if (categoryIds.length === 0) {
+  if (selectedCategoryIds.length === 0) {
     ElMessage.warning('请选择要添加的分类标签')
     return
+  }
+
+  // 使用工具函数获取包含父分类的完整分类ID列表
+  const completeTagIds = getCompleteTagIds(selectedCategoryIds, allCategories.value)
+  
+  // 使用工具函数获取自动添加的父分类信息
+  const autoAddedInfo = getAutoAddedParentInfo(selectedCategoryIds, completeTagIds, allCategories.value)
+  
+  if (autoAddedInfo.names.length > 0) {
+    ElMessage.info(`系统已自动添加父分类: ${autoAddedInfo.names.join(', ')}`)
   }
 
   try {
@@ -1059,7 +1070,7 @@ const handleAddCategories = async () => {
     if (movieId) {
       // 合并现有分类和新选择的分类
       const existingIds = movieCategories.value.map(cat => cat.categoryId || cat.id)
-      const allCategoryIds = [...new Set([...existingIds, ...categoryIds])]
+      const allCategoryIds = [...new Set([...existingIds, ...completeTagIds])]
       
       const response = await updateMovieCategoryAssociations(movieId, allCategoryIds)
       if (response && response.code === 200) {
@@ -1076,7 +1087,7 @@ const handleAddCategories = async () => {
       }
     } else {
       // 新增电影时，先保存到临时数组
-      categoryIds.forEach(id => {
+      completeTagIds.forEach(id => {
         if (!movieCategories.value.some(cat => (cat.categoryId || cat.id) === id)) {
           const category = allCategories.value.find(cat => cat.id === id)
           if (category) {
