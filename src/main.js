@@ -7,6 +7,8 @@ import store from './store'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+// 导入Element Plus中文语言包
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 // 全局样式
 import '@/styles/index.scss'
@@ -46,7 +48,10 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
 
-app.use(store).use(router).use(ElementPlus).use(pinia)
+// 使用Element Plus并配置中文语言包
+app.use(store).use(router).use(ElementPlus, {
+  locale: zhCn,
+}).use(pinia)
 
 // 在应用启动时初始化用户状态（Session机制）
 import { useAuthStore } from '@/stores/auth'
