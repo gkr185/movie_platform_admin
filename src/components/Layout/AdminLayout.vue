@@ -137,12 +137,6 @@
             <template #title>VIP套餐</template>
           </el-menu-item>
         </el-sub-menu>
-
-        <!-- 系统设置 -->
-        <el-menu-item index="/settings" v-if="hasPermission('system:setting')">
-          <el-icon><Setting /></el-icon>
-          <template #title>系统设置</template>
-        </el-menu-item>
       </el-menu>
     </el-aside>
 

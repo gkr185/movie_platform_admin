@@ -159,6 +159,7 @@
                 class="permission-tree"
                 size="small"
                 default-expand-all
+                :key="selectedRole?.id || 'empty'"
               >
                 <template #default="{ data }">
                   <span class="tree-node">
@@ -450,11 +451,19 @@ const handleRoleChange = async (roleId) => {
         console.log('当前角色权限:', selectedRolePermissions.value)
         console.log('选中的权限ID:', selectedPermissionIds.value)
         
-        // 等待下一个tick后设置树的选中状态
+        // 使用双重 nextTick 确保 DOM 完全更新
         await nextTick()
-        if (permissionTreeRef.value) {
-          permissionTreeRef.value.setCheckedKeys(selectedPermissionIds.value)
-        }
+        await nextTick()
+        
+        setTimeout(() => {
+          if (permissionTreeRef.value && selectedPermissionIds.value.length > 0) {
+            try {
+              permissionTreeRef.value.setCheckedKeys(selectedPermissionIds.value)
+            } catch (error) {
+              console.warn('设置树选中状态失败:', error)
+            }
+          }
+        }, 100)
       } else {
         ElMessage.error(response.message || '获取角色权限失败')
       }
@@ -524,10 +533,13 @@ const assignPermissions = async () => {
 }
 
 // 组件挂载时获取数据
-onMounted(() => {
-  fetchUsers()
-  fetchRoles()
-  fetchPermissions()
+onMounted(async () => {
+  // 使用 Promise.all 并行获取数据
+  await Promise.all([
+    fetchUsers(),
+    fetchRoles(),
+    fetchPermissions()
+  ])
 })
 </script>
 

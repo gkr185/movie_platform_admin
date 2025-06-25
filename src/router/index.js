@@ -232,18 +232,6 @@ const routes = [
         }
       },
       
-      // 系统设置
-      {
-        path: '/settings',
-        name: 'Settings',
-        component: () => import('../views/system/Settings.vue'),
-        meta: { 
-          title: '系统设置',
-          requiresAuth: true,
-          permission: 'system:setting',
-          adminOnly: true
-        }
-      },
       
       // 个人中心
       {
