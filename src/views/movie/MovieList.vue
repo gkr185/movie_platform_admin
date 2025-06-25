@@ -112,7 +112,7 @@
               :loading="scope.row.categoriesLoading"
             >
               <el-icon><Collection /></el-icon>
-              查看分类({{ scope.row.categoryCount || 0 }})
+              查看分类
             </el-button>
           </template>
         </el-table-column>
@@ -728,7 +728,7 @@ const fetchMovies = async () => {
     }
     
     // 为每部电影加载分类数量
-    await loadMovieCategoryCounts()
+    //await loadMovieCategoryCounts()
   } catch (error) {
     console.error('获取电影列表失败:', error)
     ElMessage.error('获取电影列表失败')

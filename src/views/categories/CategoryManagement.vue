@@ -52,7 +52,7 @@
             </el-button>
             <el-button size="small" type="info" @click="handleViewMovies(scope.row)">
               <el-icon><Film /></el-icon>
-              关联电影({{ scope.row.movieCount || 0 }})
+              关联电影
             </el-button>
             <el-button size="small" type="primary" @click="handleEditCategory(scope.row)">
               <el-icon><Edit /></el-icon>
@@ -338,7 +338,7 @@ const fetchCategories = async () => {
     if (response.code === 200) {
       allCategories.value = response.data || []
       // 为每个分类获取电影数量
-      await loadCategoryMovieCounts()
+      //await loadCategoryMovieCounts()
     } else {
       ElMessage.error(response.message || '获取分类列表失败')
     }
